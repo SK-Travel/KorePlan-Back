@@ -15,8 +15,10 @@ public class WebConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins("http://localhost:5174") // Vite
-                        .allowedMethods("*");
+                        .allowedOrigins("http://localhost:5173") // Vite
+                        .allowedMethods("GET", "POST", "PUT", "DELETE")
+                        .allowedHeaders("*") 
+                        .allowCredentials(true); 
             }
         };
     }
