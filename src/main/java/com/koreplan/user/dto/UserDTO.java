@@ -17,5 +17,9 @@ public class UserDTO {
 		return userRepository.findById(id).orElse(null);
 	}
 	
+	// 비밀번호 조회
+	public UserEntity getEntityByLoginId(String loginId) {
+		return userRepository.findByLoginId(loginId).orElse(null);
+	}
 	
 }
