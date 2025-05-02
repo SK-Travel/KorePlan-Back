@@ -21,7 +21,7 @@ public class UserRestController {
 	private UserDTO userDto;
 	
 	// 테스트용
-    @GetMapping("/user")
+    @GetMapping("")
     public Map<String, Object> getUser() {
     	
     	int id = 1;
@@ -41,8 +41,31 @@ public class UserRestController {
         return result;
     }
     
-    // 비밀번호 체크 API
-    @PostMapping("/user/check-password")
+    // 회원가입 ID중복확인 API
+    @PostMapping("/is-duplicated-id")
+    public Map<String, Object> isDuplicatedId(@RequestParam("loginId") String loginId) {
+    	
+    	// db 조회
+    	UserEntity user = userDto.getUserEntityByLoginId(loginId);
+    	
+    	Map<String, Object> result = new HashMap<>();
+    	
+    	if (user != null) {
+    		result.put("code", 200);
+    		result.put("is_duplicated_id", false);
+    	} else {
+    		result.put("is_duplicated_id", true);
+    	}
+    	
+    	
+    	return result;
+    }
+    
+    
+    
+    
+    // 회원 정보 수정 비밀번호 체크 API
+    @PostMapping("/check-password")
     public Map<String, Object> checkPassword(@RequestParam("loginId") String loginId,
     		@RequestParam("password") String password) {
     	
