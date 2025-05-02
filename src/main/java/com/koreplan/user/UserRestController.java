@@ -52,9 +52,9 @@ public class UserRestController {
     	
     	if (user != null) {
     		result.put("code", 200);
-    		result.put("is_duplicated_id", false);
-    	} else {
     		result.put("is_duplicated_id", true);
+    	} else {
+    		result.put("is_duplicated_id", false);
     	}
     	
     	
