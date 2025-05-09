@@ -39,6 +39,9 @@ public class UserEntity {
     
     private String email;
     
+    @Column(name = "phoneNumber")
+    private String phoneNumber;
+    
     @CreationTimestamp
     @Column(name = "createdAt")
     private LocalDateTime createdAt;
