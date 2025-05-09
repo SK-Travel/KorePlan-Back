@@ -11,7 +11,7 @@ public interface UserRepository extends JpaRepository<UserEntity, Integer>{
 	//유저 조회
 	 Optional<UserEntity> findById(int id);
 	 
-	 // 비밀번호 조회
+	 // 회원정보 수정용 loginId, 비밀번호로 존재여부 조회
 	 Optional<UserEntity> findByLoginId(String loginId);
 	 
 	 

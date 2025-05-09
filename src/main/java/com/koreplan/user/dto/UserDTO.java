@@ -22,6 +22,17 @@ public class UserDTO {
 		return userRepository.findByLoginId(loginId).orElse(null);
 	}
 	
+	// 회원가입
+	public UserEntity addUser(String loginId, String password, String name, String email, String phoneNumber) {
+		return userRepository.save(UserEntity.builder()
+				.loginId(loginId)
+				.password(password)
+				.name(name)
+				.email(email)
+				.phoneNumber(phoneNumber)
+				.build());
+	}
+	
 	
 	// 회원정보 수정용 loginId, 비밀번호로 존재여부 조회
 	public UserEntity getEntityByLoginId(String loginId) {
