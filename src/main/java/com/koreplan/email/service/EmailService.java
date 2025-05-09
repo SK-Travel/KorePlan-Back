@@ -84,19 +84,28 @@ public class EmailService {
 	public boolean verifyCode(VerifyRequestDto request) {
 	    System.out.println("🔍 입력 이메일: " + request.getEmail());
 	    System.out.println("🔍 입력 코드: " + request.getCode());
-		
-	    if (request.getEmail() == null || request.getCode() == null) {
-	        return false;
-	    }
 	    
+	    
+	    // 사용자가 입력한 이메일 주소로 저장된 인증번호를 가져옴.
 	    String existingCode = verificationCodes.get(request.getEmail());
+	    System.out.println(existingCode);
+	    
+	    // 저장된 인증번호가 없다면 (인증 요청이 없었거나 만료된 경우) false 반환
 	    if (existingCode == null) {
 	        return false;
 	    }
-
-	    boolean result = existingCode.equals(request.getCode());
-	    verificationCodes.put(request.getEmail(), ""); // 코드 초기화
-	    return result;
+	    
+	    // 저장된 인증번호와 사용자가 입력한 인증번호가 일치하는지 확인
+	    if (existingCode.equals(request.getCode())) {
+	    	// 인증번호가 일치하면 해당 이메일의 인증번호를 맵에서 삭제 (1회용으로 사용)
+	    	verificationCodes.remove(request.getEmail());
+	    	return true; // 인증 성공
+	    } else {
+	    	// 인증번호가 일치하면 삭제하지 않고 flase 반환 -> 사용자 재시도 가능
+	    	return false;
+	    }
+	    
+	    
 	}
 	
 }

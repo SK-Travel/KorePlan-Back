@@ -25,14 +25,14 @@ public class EmailRestController {
     @PostMapping("/send-code")
     public ResponseEntity<?> sendVerificationCode(@RequestBody EmailRequestDto request) {
     	boolean result = emailService.sendEmail(request); // 이메일 요청 보내기
-    	return result ? ResponseEntity.ok().build() : ResponseEntity.status(500).build(); // result가 true면 ok, 아니면 에러 500리턴
+    	return result ? ResponseEntity.ok().build() : ResponseEntity.status(500).build(); // result가 true면 200(ok), 아니면 에러 500리턴
     }
     
     // 이메일 확인 코드
     @PostMapping("/verify-code")
     public ResponseEntity<?> verifyCode(@RequestBody VerifyRequestDto request) {
     	boolean result = emailService.verifyCode(request);
-    	return result ? ResponseEntity.ok().build() : ResponseEntity.status(400).body("Invalid Code") ; // 인증번호가 true면 ok, 틀리면 400 리턴
+    	return result ? ResponseEntity.ok().build() : ResponseEntity.status(400).body("Invalid Code") ; // 인증번호가 true면 200(ok), false면 400 리턴
     }
 	
 }
