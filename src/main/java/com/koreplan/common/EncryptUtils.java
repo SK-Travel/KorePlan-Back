@@ -1,7 +1,9 @@
 package com.koreplan.common;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Component;
 
+@Component
 public class EncryptUtils {
 	
 	//BCrpyt로 하는 게 대세고, 60바이트라 안전해서, pom.xml에 삼총사 추가함
