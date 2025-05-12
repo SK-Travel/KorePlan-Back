@@ -33,8 +33,7 @@ public class UserDTO {
 				.build());
 	}
 	
-	
-	// 회원정보 수정용 loginId, 비밀번호로 존재여부 조회
+	// 로그인하기 +++ 회원정보 수정용 loginId, 비밀번호로 존재여부 조회
 	public UserEntity getEntityByLoginId(String loginId) {
 		return userRepository.findByLoginId(loginId).orElse(null);
 	}
