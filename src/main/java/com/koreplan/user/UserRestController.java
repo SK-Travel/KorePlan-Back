@@ -15,6 +15,8 @@ import com.koreplan.common.EncryptUtils;
 import com.koreplan.user.dto.UserDTO;
 import com.koreplan.user.entity.UserEntity;
 
+import jakarta.servlet.http.HttpSession;
+
 @RestController
 @RequestMapping("/api/user")
 public class UserRestController {
@@ -75,15 +77,12 @@ public class UserRestController {
     // 회원가입 
     /**
      * 
-     * @param loginId
-     * @param password
-     * @param name
-     * @param email
-     * @param phoneNumber
+     * @param userEntity
      * @return
      */
     @PostMapping("/sign-up")
-    public Map<String, Object> signUp(@RequestBody UserEntity userEntity) {
+    public Map<String, Object> signUp(
+    		@RequestBody UserEntity userEntity) {
     	
     	// 해싱된 비밀번호
     	String hashedPassword = encryptUtils.hashPassword(userEntity.getPassword());
@@ -101,6 +100,57 @@ public class UserRestController {
     	}
     	return result;
     }
+    
+    
+    // 로그인 (세션 저장하기== 비로그인/로그인 시)
+    /**
+     * 
+     * @param userEntity
+     * @param session
+     * @return
+     */
+
+   	@PostMapping("/sign-in")
+    public Map<String, Object> signIn (
+    		@RequestBody UserEntity userEntity,
+    		HttpSession session) {
+   		
+   		
+   		//응답값 저장
+   		Map<String, Object> result = new HashMap<>();
+    	
+    	// 해싱된 비밀번호 찾기 위해 loginId로 유저 찾기
+   		UserEntity savedUser = userDto.getUserEntityByLoginId(userEntity.getLoginId());
+   		
+   		// 유저 없을 때
+   		if (savedUser == null) {
+   			result.put("code", 400);
+   			result.put("error_message", "존재하지 않은 사용자입니다.");
+   			return result;
+   		}
+   		
+   		
+   		// 해당 유저의 해싱 비번 저장
+    	String hashedPassword = savedUser.getPassword();
+    	// 비밀번호 일치 로직
+    	boolean isPasswordMatch = encryptUtils.checkPassword(userEntity.getPassword(), hashedPassword);
+    	// 유저가 있을 때, 비밀번호 일치 시 
+    	if (isPasswordMatch) {
+			// 정보 저장 session에
+			session.setAttribute("userId", savedUser.getLoginId());
+			session.setAttribute("name", savedUser.getName());
+			
+			result.put("code", 200);
+			result.put("result", "로그인 성공, 메인페이지로 이동합니다.");
+		} else {
+			result.put("code", 401);
+			result.put("error_message", "비밀번호가 틀렸습니다.");
+    	}
+    	
+    	return result;
+    }
+    
+    
     
   
     // 회원 정보 수정 비밀번호 체크 API
