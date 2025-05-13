@@ -15,15 +15,17 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.ToString;
 
+@Entity
+@Table(name = "user")
 @Getter
 @Builder
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
-@Entity
-@Table(name = "user")
 public class UserEntity {
     
     @Id
@@ -38,6 +40,9 @@ public class UserEntity {
     private String name;
     
     private String email;
+    
+    @Column(name = "phoneNumber")
+    private String phoneNumber;
     
     @CreationTimestamp
     @Column(name = "createdAt")
