@@ -14,7 +14,7 @@ import com.koreplan.user.dto.UserDTO;
 import com.koreplan.user.entity.UserEntity;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/user")
 public class UserRestController {
 	
 	@Autowired
