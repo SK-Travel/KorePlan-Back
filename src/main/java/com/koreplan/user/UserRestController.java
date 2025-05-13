@@ -2,8 +2,12 @@ package com.koreplan.user;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -14,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.koreplan.common.EncryptUtils;
 import com.koreplan.user.dto.UserDTO;
 import com.koreplan.user.entity.UserEntity;
+import com.koreplan.user.google.entity.OAuth2UserInfoEntity;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -74,7 +79,13 @@ public class UserRestController {
     	return result;
     }
     
-    // 회원가입 
+    
+    // 회원가입 구글
+//    @PostMapping("/google-login")
+    
+    
+    
+    // 회원가입 일반
     /**
      * 
      * @param userEntity
@@ -83,14 +94,30 @@ public class UserRestController {
     @PostMapping("/sign-up")
     public Map<String, Object> signUp(
     		@RequestBody UserEntity userEntity) {
+    	Map<String, Object> result = new HashMap<>();
     	
-    	// 해싱된 비밀번호
-    	String hashedPassword = encryptUtils.hashPassword(userEntity.getPassword());
+    	// 중복체크
+    	// 로그인 아이디
+    	if (userEntity.getLoginId() != null) {
+    		UserEntity loginIdUser = userDto.getUserEntityByLoginId(userEntity.getLoginId());
+    		if (loginIdUser != null) {
+    			result.put("code", 400);
+    			result.put("error_message", "이미 존재하는 로그인ID입니다.");
+    			return result;
+    		}
+    	}
+    	
+    	// 이메일 체크
+    	Optional<UserEntity> existing = userDto.getUserEntityByEmailOptional(userEntity.getEmail());
+    	if (existing.isPresent()) {
+    		result.put("code", 401);
+    		result.put("error_message", "이미 존재하는 이메일입니다.");
+    		return result;
+    	}
     	
     	// user Insert
-    	UserEntity user = userDto.addUser(userEntity.getLoginId(), hashedPassword, userEntity.getName(), userEntity.getEmail(), userEntity.getPhoneNumber());
+    	UserEntity user = userDto.signUpUser(userEntity);
     	
-    	Map<String, Object> result = new HashMap<>();
     	if (user != null) {
     		result.put("code", 200);
     		result.put("result", "성공");
@@ -100,6 +127,7 @@ public class UserRestController {
     	}
     	return result;
     }
+    
     
     
     // 로그인 (세션 저장하기== 비로그인/로그인 시)
@@ -159,7 +187,7 @@ public class UserRestController {
     		@RequestParam("loginId") String loginId,
     		@RequestParam("password") String password) {
     	
-    	UserEntity user = userDto.getEntityByLoginId(loginId);
+    	UserEntity user = userDto.getUserEntityByLoginId(loginId);
     	
     	Map<String, Object> result = new HashMap<>();
     	if (user != null) {
