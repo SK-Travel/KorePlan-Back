@@ -38,7 +38,7 @@ public class SecurityConfig {
          .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS) // 세션 대신 JWT 사용
          .and()
          .authorizeHttpRequests()
-             .requestMatchers("/signIn", "/signup", "/oauth2/**").permitAll() // 허용 경로
+             .requestMatchers("/signIn", "/signup", "/oauth2/**", "/api/place").permitAll() // 허용 경로 지도 맵핑기능을 위해 "api/place추가햇음"
              .anyRequest().authenticated()
          .and()
          .oauth2Login()
