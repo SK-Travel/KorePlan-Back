@@ -1,16 +1,21 @@
 package com.koreplan.place.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.koreplan.place.dto.PlaceDTO;
-import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class PlaceService {
@@ -21,46 +26,61 @@ public class PlaceService {
     @Value("${naver.client.secret}")
     private String clientSecret;
 
-    // ✅ 실행 시 인증 정보 출력 (디버깅용)
-    @PostConstruct
-    public void checkKeys() {
-        System.out.println("✅ Naver Client ID: " + clientId);
-        System.out.println("✅ Naver Client Secret: " + clientSecret);
-    }
+    //검색api
+    public List<PlaceDTO> getPlacesByKeyword(String keyword) {
+        List<PlaceDTO> resultList = new ArrayList<>();
 
-    public PlaceDTO getPlaceByKeyword(String keyword) {
         try {
-            String encoded = URLEncoder.encode(keyword, StandardCharsets.UTF_8);
-            String url = "https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode?query=" + encoded;
+            System.out.println("🔍 검색 키워드: " + keyword);
+            String text = URLEncoder.encode(keyword, StandardCharsets.UTF_8);
+            String apiUrl = "https://openapi.naver.com/v1/search/local.json?query=" + text + "&display=5&start=1";
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("X-NCP-APIGW-API-KEY-ID", clientId);   // ✅ 공식 명칭
-            headers.set("X-NCP-APIGW-API-KEY", clientSecret);  // ✅ 공식 명칭
-            
-            HttpEntity<String> entity = new HttpEntity<>(headers);
+            URL url = new URL(apiUrl);
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
+            con.setRequestMethod("GET");
+            con.setRequestProperty("X-Naver-Client-Id", clientId);
+            con.setRequestProperty("X-Naver-Client-Secret", clientSecret);
+            con.setRequestProperty("Accept", "application/json");
+            con.setRequestProperty("User-Agent", "Mozilla/5.0");
 
-            RestTemplate restTemplate = new RestTemplate();
-            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
-            System.out.println("🟡 Naver 응답: " + response.getBody());
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode root = mapper.readTree(response.getBody());
-            JsonNode addr = root.path("addresses");
+            int responseCode = con.getResponseCode();
+            InputStream responseStream = (responseCode == 200) ? con.getInputStream() : con.getErrorStream();
 
-            if (!addr.isArray() || addr.size() == 0) {
-                return null;
+            BufferedReader br = new BufferedReader(new InputStreamReader(responseStream, StandardCharsets.UTF_8));
+            StringBuilder responseBuilder = new StringBuilder();
+            String line;
+
+            while ((line = br.readLine()) != null) {
+                responseBuilder.append(line);
             }
 
-            JsonNode firstAddr = addr.get(0);
-            return new PlaceDTO(
-                    keyword,
-                    firstAddr.path("roadAddress").asText(),
-                    firstAddr.path("y").asDouble(),
-                    firstAddr.path("x").asDouble()
-            );
+            String responseJson = responseBuilder.toString();
+            System.out.println("🟡 Naver 응답: " + responseJson);
+
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(responseJson);
+            JsonNode items = root.path("items");
+
+            if (items.isArray()) {
+                for (JsonNode item : items) {
+                    PlaceDTO dto = new PlaceDTO(
+                            item.path("title").asText().replaceAll("<[^>]*>", ""),
+                            item.path("link").asText(),
+                            item.path("category").asText(),
+                            item.path("address").asText(),
+                            item.path("roadAddress").asText(),
+                            item.path("telephone").asText(),
+                            item.path("mapx").asText(),
+                            item.path("mapy").asText()
+                    );
+                    resultList.add(dto);
+                }
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
         }
+
+        return resultList;
     }
 }
