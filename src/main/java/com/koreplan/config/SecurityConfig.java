@@ -33,7 +33,7 @@ public class SecurityConfig {
 	// Spring Security 설정
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-		http
+	  http
 	    .csrf().disable()
 	    .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
 	    .and()
@@ -43,9 +43,8 @@ public class SecurityConfig {
 	    .oauth2Login().disable()     // 필요 없으면 비활성화
 	    .formLogin().disable();      // 기본 로그인 비활성화
 	
-	// 필요 시 JWT 필터도 비활성화하거나 남겨둬도 됨
-	// http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-
+    // 필요 시 JWT 필터도 비활성화하거나 남겨둬도 됨
+    // http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
      return http.build();
 	}
 }
