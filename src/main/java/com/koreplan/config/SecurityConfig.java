@@ -33,25 +33,18 @@ public class SecurityConfig {
 	// Spring Security 설정
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-	http
-         .csrf().disable() // CSRF 비활성화 (운영 시 주의)
-         .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS) // 세션 대신 JWT 사용
-         .and()
-         .authorizeHttpRequests()
-             .requestMatchers("/signIn", "/signup", "/oauth2/**").permitAll() // 허용 경로
-             .anyRequest().authenticated()
-         .and()
-         .oauth2Login()
-             .loginPage("/signIn") // 커스텀 로그인 페이지 URL
-             .userInfoEndpoint()
-                 .userService(customOAuth2UserDTO) // OAuth 사용자 정보 처리
-             .and()
-             .successHandler(oAuth2LoginSuccessHandler) // ✅ 커스텀 성공 핸들러 등록
-         .and()
-         .formLogin().disable(); // 기본 폼 로그인 비활성화
-
-     // JWT 필터 등록
-     http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+		http
+	    .csrf().disable()
+	    .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+	    .and()
+	    .authorizeHttpRequests()
+	        .anyRequest().permitAll() // 모든 요청 허용
+	    .and()
+	    .oauth2Login().disable()     // 필요 없으면 비활성화
+	    .formLogin().disable();      // 기본 로그인 비활성화
+	
+	// 필요 시 JWT 필터도 비활성화하거나 남겨둬도 됨
+	// http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
      return http.build();
 	}
