@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.koreplan.common.EncryptUtils;
 import com.koreplan.user.dto.UserDTO;
 import com.koreplan.user.entity.UserEntity;
-import com.koreplan.user.google.entity.OAuth2UserInfoEntity;
+import com.koreplan.user.oauth2.entity.OAuth2UserInfoEntity;
 
 import jakarta.servlet.http.HttpSession;
 
