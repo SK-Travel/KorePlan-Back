@@ -33,6 +33,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 		
 		// 카카오, 네이버
 		String registrationId = userRequest.getClientRegistration().getRegistrationId();
+		System.out.println(registrationId);
+		System.out.println(userRequest.getClientRegistration());
 		// 구글
 		Map<String, Object> attributes = oAuth2User.getAttributes();
 
