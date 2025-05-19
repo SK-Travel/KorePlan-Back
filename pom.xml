@@ -143,7 +143,12 @@
 			<version>0.11.5</version>
 			<scope>runtime</scope>
 		</dependency>
-				
+		<!-- 구글 플레이스 -->
+		<dependency>
+		    <groupId>org.springframework.boot</groupId>
+		    <artifactId>spring-boot-starter-json</artifactId>
+		</dependency>
+		
 	</dependencies>
 
 	<build>
