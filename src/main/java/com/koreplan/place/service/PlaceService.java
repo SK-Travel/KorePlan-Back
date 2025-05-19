@@ -20,12 +20,17 @@ public class PlaceService {
 
     @Value("${naver.client.secret}")
     private String clientSecret;
+    
+    @Value("${google.places.api.key}")
+    private String apiKey;
 
     // ✅ 실행 시 인증 정보 출력 (디버깅용)
     @PostConstruct
     public void checkKeys() {
         System.out.println("✅ Naver Client ID: " + clientId);
         System.out.println("✅ Naver Client Secret: " + clientSecret);
+        System.out.println("✅ Google Places API Key: " + apiKey);
+        
     }
 
     public PlaceDTO getPlaceByKeyword(String keyword) {
