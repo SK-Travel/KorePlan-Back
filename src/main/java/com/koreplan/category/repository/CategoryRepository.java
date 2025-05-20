@@ -1,5 +1,10 @@
 package com.koreplan.category.repository;
 
-public interface CategoryRepository {
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.koreplan.category.entity.CategoryEntity;
+
+
+public interface CategoryRepository extends JpaRepository<CategoryEntity,Long>{
 
 }
