@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.koreplan.common.EncryptUtils;
-import com.koreplan.user.dto.UserDTO;
+import com.koreplan.user.dto.UserService;
 import com.koreplan.user.entity.UserEntity;
 
 import jakarta.servlet.http.HttpSession;
@@ -23,7 +23,7 @@ import jakarta.servlet.http.HttpSession;
 public class UserRestController {
 	
 	@Autowired
-	private UserDTO userDto;
+	private UserService userDto;
 	
 	@Autowired
 	private EncryptUtils encryptUtils;
