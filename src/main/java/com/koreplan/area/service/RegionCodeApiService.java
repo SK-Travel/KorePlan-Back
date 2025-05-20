@@ -159,7 +159,7 @@ public class RegionCodeApiService {
         for (Item item : items) {
             // 1. 먼저 Region 엔티티 생성 및 저장
             RegionCodeEntity regionEntity = new RegionCodeEntity();
-            regionEntity.setCodeNum(Long.valueOf(item.getCode()));
+            regionEntity.setRegioncode(Long.valueOf(item.getCode()));
             regionEntity.setName(item.getName());
             regionEntity.setWardList(new ArrayList<>());
             
@@ -181,7 +181,7 @@ public class RegionCodeApiService {
         
         for (Item item : items) {
             WardCodeEntity wardEntity = new WardCodeEntity();
-            wardEntity.setCodeNum(Long.valueOf(item.getCode()));
+            wardEntity.setWardcode(Long.valueOf(item.getCode()));
             wardEntity.setName(item.getName());
             wardEntity.setRegionCodeEntity(regionEntity); // 이미 저장된 Region 엔티티 참조
             entities.add(wardEntity);

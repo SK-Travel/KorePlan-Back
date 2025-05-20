@@ -21,7 +21,7 @@ public class RegionCodeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 	
-	private Long codeNum;
+	private Long regioncode;
 	
 	private String name;
 	
