@@ -17,11 +17,11 @@ public class CategoryEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String lclsSystm1Cd;
-    private String lclsSystm1Nm;
-    private String lclsSystm2Cd;
-    private String lclsSystm2Nm;
-    private String lclsSystm3Cd;
-    private String lclsSystm3Nm;
+    private String C1Code;
+    private String C1Name;
+    private String C2Code;
+    private String C2Name;
+    private String C3Code;
+    private String C3Name;
     private int rnum;
 }

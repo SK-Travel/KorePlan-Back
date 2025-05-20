@@ -112,12 +112,12 @@ public class CategoryService {
 
         for (CategoryDto item : items) {
         	CategoryEntity categoryEntity = new CategoryEntity();
-            categoryEntity.setLclsSystm1Cd(item.getLclsSystm1Cd());
-            categoryEntity.setLclsSystm1Nm(item.getLclsSystm1Nm());
-            categoryEntity.setLclsSystm2Cd(item.getLclsSystm2Cd());
-            categoryEntity.setLclsSystm2Nm(item.getLclsSystm2Nm());
-            categoryEntity.setLclsSystm3Cd(item.getLclsSystm3Cd());
-            categoryEntity.setLclsSystm3Nm(item.getLclsSystm3Nm());
+            categoryEntity.setC1Code(item.getLclsSystm1Cd());
+            categoryEntity.setC1Name(item.getLclsSystm1Nm());
+            categoryEntity.setC2Code(item.getLclsSystm2Cd());
+            categoryEntity.setC2Name(item.getLclsSystm2Nm());
+            categoryEntity.setC3Code(item.getLclsSystm3Cd());
+            categoryEntity.setC3Name(item.getLclsSystm3Nm());
             categoryEntity.setRnum(item.getRnum());
 
             entities.add(categoryEntity);
