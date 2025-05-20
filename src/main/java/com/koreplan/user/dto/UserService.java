@@ -10,7 +10,7 @@ import com.koreplan.user.entity.UserEntity;
 import com.koreplan.user.repository.UserRepository;
 
 @Service
-public class UserDTO {
+public class UserService {
 	
 	@Autowired
 	private UserRepository userRepository;
