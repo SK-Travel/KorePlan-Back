@@ -5,9 +5,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.koreplan.common.EncryptUtils;
 import com.koreplan.user.dto.UserDTO;
 import com.koreplan.user.entity.UserEntity;
-import com.koreplan.user.oauth2.entity.OAuth2UserInfoEntity;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -179,8 +175,31 @@ public class UserRestController {
     }
     
     
-    
-  
+    // 화원 정보 수정 회원조회
+   	@PostMapping("/info")
+   	public Map<String, Object> userInfo(@RequestBody UserEntity userEntity) {
+   		
+   		// DB 조회
+   		UserEntity user = userDto.getUSerEntityByNameEmail(userEntity.getName(), userEntity.getEmail());
+   		
+   		// 응답값
+   		Map<String, Object> result = new HashMap<>();
+   		if (user != null) {
+   			result.put("code", 200);
+   			result.put("result", "유저 조회 성공");
+   			result.put("loginId", user.getLoginId());
+   			result.put("password", user.getPassword());
+   			result.put("email", user.getEmail());
+   			result.put("name", user.getName());
+   			result.put("phoneNumber", user.getPhoneNumber());
+   		} else {
+   			result.put("code", 500);
+   			result.put("error_message", "유저 조회 실패");
+   		}
+   		
+   		return result;
+   	}
+   	
     // 회원 정보 수정 비밀번호 체크 API
     @PostMapping("/check-password")
     public Map<String, Object> checkPassword(
