@@ -18,6 +18,7 @@ import com.koreplan.user.repository.UserRepository;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
 @Component
@@ -63,7 +64,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 	    // DB에 사용자 존재 여부 확인
 		Optional<UserEntity> userOptional = userRepository.findByEmail(email);
 		
-		 String redirectType;
+		String redirectType;
 		
 		// DB에 사용자가 없으면 새로 등록
         if (userOptional.isEmpty()) {
@@ -85,6 +86,12 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         // JWT 생성
         String token = jwtTokenProvider.generateToken(email);
+        
+        // 세션저장
+        HttpSession session = request.getSession();
+        session.setAttribute("email", email);
+        session.setAttribute("name", name);
+        
         // 이메일, 이름, 타입, 토큰 쿼리파라미터로 넘김
         String redirectUrl = String.format("http://localhost:5173/oauth2/redirection?email=%s&name=%s&type=%s&token=%s",
                 java.net.URLEncoder.encode(email, "UTF-8"),
