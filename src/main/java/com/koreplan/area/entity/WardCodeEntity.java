@@ -21,7 +21,7 @@ public class WardCodeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 	
-	private Long codeNum;
+	private Long wardcode;
 	
 	private String name;
 	
