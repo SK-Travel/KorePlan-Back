@@ -70,6 +70,11 @@ public class UserDTO {
                 .build());
     }
 	
-
+    // 로컬 스토리지에 저장된 유저 정보 조회
+    public UserEntity getUSerEntityByNameEmail(String name, String email) {
+    	return userRepository.findByNameAndEmail(name, email);
+    }
+    
+    
 	
 }
