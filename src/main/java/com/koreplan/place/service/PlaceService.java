@@ -1,12 +1,8 @@
 package com.koreplan.place.service;
 
-import com.koreplan.place.dto.PlaceDTO;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
 import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -14,8 +10,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.koreplan.place.dto.PlaceDTO;
+
+import jakarta.annotation.PostConstruct;
 
 @Service
 public class PlaceService {
@@ -26,12 +28,22 @@ public class PlaceService {
     @Value("${naver.client.secret}")
     private String clientSecret;
 
-    //검색api
+    @Value("${google.places.api.key}")
+    private String apiKey;
+
+    // ✅ 실행 시 인증 정보 출력 (디버깅용)
+    @PostConstruct
+    public void checkKeys() {
+        System.out.println("✅ Naver Client ID: " + clientId);
+        System.out.println("✅ Naver Client Secret: " + clientSecret);
+        System.out.println("✅ Google Places API Key: " + apiKey);
+    }
+
+    // 검색 API
     public List<PlaceDTO> getPlacesByKeyword(String keyword) {
         List<PlaceDTO> resultList = new ArrayList<>();
 
         try {
-            System.out.println("🔍 검색 키워드: " + keyword);
             String text = URLEncoder.encode(keyword, StandardCharsets.UTF_8);
             String apiUrl = "https://openapi.naver.com/v1/search/local.json?query=" + text + "&display=5&start=1";
 
