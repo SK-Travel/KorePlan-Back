@@ -1,4 +1,4 @@
-package com.koreplan.category.dto;
+package com.koreplan.data.dto;
 
 import java.util.List;
 
@@ -27,14 +27,8 @@ public class ResponseDto {
 
     @Data
     public static class Items {
-        private List<CategoryDto> item;
+        private List<DataDto> item;
     }
-    @Data
-    public class Item {
-        private int rnum;
-        private int code;
-        private String name;
-    }
-
+   
     
 }
