@@ -166,7 +166,13 @@
 		    <artifactId>spring-boot-starter-json</artifactId>
 		</dependency>
 		
+		<!-- OPEN AI API 쓰기 위한 WebClient 디펜던시-->
+		<dependency>
+		    <groupId>org.springframework.boot</groupId>
+		    <artifactId>spring-boot-starter-webflux</artifactId>
+		</dependency>
 
+		
 	</dependencies>
 
 	<build>

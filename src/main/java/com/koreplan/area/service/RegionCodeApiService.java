@@ -125,6 +125,7 @@ public class RegionCodeApiService {
         ResponseDto responseDto = objectMapper.readValue(responseBody, ResponseDto.class);
         return ResponseEntity.ok(responseDto);
     }
+    // 주석 처리 해야 함.
 
 //    @PostConstruct
 //    public void init() {
