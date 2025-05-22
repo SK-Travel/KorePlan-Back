@@ -1,5 +1,7 @@
 package com.koreplan.data.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.Data;
 
 @Data
@@ -25,7 +27,9 @@ public class DataDto {
 	    private String tel;
 	    private String title;
 	    private String zipcode;
+	    @JsonProperty("lDongRegnCd")
 	    private String lDongRegnCd;
+	    @JsonProperty("lDongSignguCd")
 	    private String lDongSignguCd;
 	    private String lclsSystm1;
 	    private String lclsSystm2;
