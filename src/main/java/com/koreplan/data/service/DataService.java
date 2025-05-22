@@ -7,13 +7,18 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.koreplan.data.dto.ResponseDto;
+import com.koreplan.area.entity.RegionCodeEntity;
+import com.koreplan.area.entity.WardCodeEntity;
+import com.koreplan.area.repository.RegionCodeRepository;
+import com.koreplan.area.repository.WardCodeRepository;
 import com.koreplan.data.dto.DataDto;
+import com.koreplan.data.dto.ResponseDto;
 import com.koreplan.data.entity.DataEntity;
 import com.koreplan.data.repository.DataRepository;
 
@@ -27,7 +32,14 @@ import lombok.extern.slf4j.Slf4j;
 public class DataService {
 	private final DataRepository dataRepository;
 	private final ObjectMapper objectMapper;
+	@Autowired
+	private RegionCodeRepository regionCodeRepository;
 
+	@Autowired
+	private WardCodeRepository wardCodeRepository;
+
+	
+	
 	@Value("${publicDataKey}")
 	private String key;
 
@@ -84,9 +96,9 @@ public class DataService {
 //			}
 //
 //			List<DataDto> items = dto.getResponse().getBody().getItems().getItem();
-//
+//			
 //			saveData(dto);
-//
+//			
 //			// 여기서 DB 저장 로직 추가 가능
 //			// saveAll(items) 등
 //
@@ -95,20 +107,19 @@ public class DataService {
 //		}
 //	}
 	public void saveData(ResponseDto dto) {
+		
 	    List<DataDto> items = dto.getResponse()
 	                              .getBody()
 	                              .getItems()
 	                              .getItem();
 
 	    List<DataEntity> entities = new ArrayList<>();
-
+	    
 	    for (DataDto item : items) {
 	        DataEntity entity = new DataEntity();
 	        entity.setContentId(item.getContentid());
 	        entity.setAddr1(item.getAddr1());
 	        entity.setAddr2(item.getAddr2());
-	        entity.setRegioncode(item.getAreacode());
-	        entity.setWardcode(item.getSigungucode());
 	        entity.setMapx(item.getMapx());
 	        entity.setMapy(item.getMapy());
 	        entity.setTitle(item.getTitle());
@@ -122,12 +133,27 @@ public class DataService {
 	            tel = tel.substring(0, 50);
 	        }
 	        entity.setTel(tel);
-	       
+
+	        // 🔽 연관관계 설정
+	        try {
+	            Long regionCode = Long.parseLong(item.getAreacode());
+	            Long wardCode = Long.parseLong(item.getSigungucode());
+
+	            RegionCodeEntity region = regionCodeRepository.findByRegioncode(regionCode)
+	                    .orElseThrow(() -> new RuntimeException("지역 코드 없음: " + regionCode));
+
+	            WardCodeEntity ward = wardCodeRepository.findByWardcodeAndRegionCodeEntity(wardCode, region)
+	                    .orElseThrow(() -> new RuntimeException("구 코드 없음: " + wardCode));
+
+	            entity.setRegionCodeEntity(region);
+	            entity.setWardCodeEntity(ward);
+	        } catch (Exception e) {
+	            log.warn("지역/구 매핑 실패: contentId={} 지역코드={}, 구코드={}", item.getContentid(), item.getAreacode(), item.getSigungucode());
+	            continue; // 저장 생략
+	        }
 
 	        entities.add(entity);
 	        log.info("DataEntity created: {}", entity);
 	    }
-
-	    dataRepository.saveAll(entities);
 	}
 }
