@@ -1,4 +1,4 @@
-package com.koreplan.user.dto;
+package com.koreplan.user.service;
 
 import java.util.Optional;
 
