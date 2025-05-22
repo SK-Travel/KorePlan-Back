@@ -1,10 +1,12 @@
 package com.koreplan.openAi;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.koreplan.openAi.dto.OpenAiService;
+import com.koreplan.openAi.dto.MessageRequest;
+import com.koreplan.openAi.service.OpenAiService;
 
 @RestController
 @RequestMapping("/api/openai")
@@ -17,7 +19,14 @@ public class OpenAiRestController {
 		this.openAiService = openAiService;
 	}
 	
-	
-	
-	
+	/**
+	 * 
+	 * @param request 사용자가 보낸 질문
+	 * @return GPT의 응답
+	 */
+	@PostMapping("/ask")
+	public String askGpt(@RequestBody MessageRequest request) {
+		return openAiService.chatWithGpt(request.getMessage());
+	}	
+
 }
