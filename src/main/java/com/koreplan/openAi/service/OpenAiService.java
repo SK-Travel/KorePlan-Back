@@ -5,6 +5,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.koreplan.openAi.UsageTracker;
 
 import jakarta.annotation.PostConstruct;
@@ -59,11 +61,23 @@ public class OpenAiService {
 				""".formatted(userMessage);
 		
 		// POST 방식으로 /chat/completions 호출, 응답을 문자열로 받음
-		return webClient.post()
-				.uri("/chat/completions")
-				.bodyValue(requestBody)
-				.retrieve()
-				.bodyToMono(String.class) // MONO<String> 타입으로 반환받음.s
-				.block(); // 동기 호출 (응답 올 때까지 기다림)
+		try {
+			String rawJson = webClient.post()
+					.uri("/chat/completions")
+					.bodyValue(requestBody)
+					.retrieve()
+					.bodyToMono(String.class) // MONO<String> 타입으로 반환받음.
+					.block(); // 동기 호출 (응답 올 때까지 기다림)
+			
+			// JSON 파싱
+			ObjectMapper objectMapper = new ObjectMapper(); // Jackson라이브러리 Json에서 자바객체, 자바객체에서 Json으로 치환해주는 도구
+			JsonNode root = objectMapper.readTree(rawJson); // JsonNode로 하여금 Json값으로 온 rawJson 트리구조를 읽게 함.
+			
+			// choices[0].message.content 추출
+			return root.path("choices").get(0).path("message").path("content").asText();
+			
+		} catch (Exception e) {
+			return "OPEN AI 응답 처리 중 오류 내용: " + e.getMessage();
+		}
 	}
 }

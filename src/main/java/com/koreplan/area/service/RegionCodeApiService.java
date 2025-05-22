@@ -38,11 +38,11 @@ public class RegionCodeApiService {
     private String key;
 
     private String publicDataKey = "8RzX7q7EJdbZwVX%2BT19pP%2B4eG8Omg8zWmGE6VJQsECN5MNrujoaMTY4FkJww6UeJF1fDoNn6UrkmNycG%2FhCxKw%3D%3D";
-    private String apiUrl = "https://apis.data.go.kr/B551011/KorService2/areaCode2";
+    private String apiUrl = "https://apis.data.go.kr/B551011/KorService2/ldongCode2";
 
     public ResponseEntity<ResponseDto> requestRegionCodes() throws Exception {
     	int rows=100;
-        String fullUrl = apiUrl + "?serviceKey=" + publicDataKey +"&numOfRows="+rows +"&MobileOS=WEB&MobileApp=Koreplan&_type=json";
+        String fullUrl = apiUrl + "?serviceKey=" + publicDataKey +"&numOfRows="+rows +"&MobileOS=WEB&MobileApp=Koreplan&_type=json&lDongListYn=N";
         
         URL url = new URL(fullUrl);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -92,7 +92,7 @@ public class RegionCodeApiService {
     		    + "&numOfRows="+rows
     		    + "&pageNo=1"
     		    + "&MobileOS=WEB&MobileApp=Koreplan&_type=json"
-    		    + "&areaCode=" + areaCode;
+    		    + "&lDongRegnCd=" + areaCode;
         URL url = new URL(fullUrl);
         log.info("요청 URL: {}", url);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -127,33 +127,33 @@ public class RegionCodeApiService {
     }
     // 주석 처리 해야 함.
 
-//    @PostConstruct
-//    public void init() {
-//        try {
-//            ResponseEntity<ResponseDto> response = requestRegionCodes();
-//            ResponseDto dto = response.getBody();
-//
-//            if (dto == null) {
-//                log.warn("API 응답이 null입니다.");
-//                return;
-//            }
-//
-//
-//            List<Item> items = dto.getResponse().getBody().getItems().getItem();
-//
-//            // 예시: 아이템 리스트 출력
-//            for (Item item : items) {
-//                log.info("####지역 코드: {}, 지역명: {}", item.getCode(), item.getName());
-//            }
-//            saveRegionCode(dto);
-//            
-//            // 여기서 DB 저장 로직 추가 가능
-//            // saveAll(items) 등
-//
-//        } catch (Exception e) {
-//            log.error("지역 코드 초기화 중 오류 발생", e);
-//        }
-//    }
+    @PostConstruct
+    public void init() {
+        try {
+            ResponseEntity<ResponseDto> response = requestRegionCodes();
+            ResponseDto dto = response.getBody();
+
+            if (dto == null) {
+                log.warn("API 응답이 null입니다.");
+                return;
+            }
+
+
+            List<Item> items = dto.getResponse().getBody().getItems().getItem();
+
+            // 예시: 아이템 리스트 출력
+            for (Item item : items) {
+                log.info("####지역 코드: {}, 지역명: {}", item.getCode(), item.getName());
+            }
+            saveRegionCode(dto);
+            
+            // 여기서 DB 저장 로직 추가 가능
+            // saveAll(items) 등
+
+        } catch (Exception e) {
+            log.error("지역 코드 초기화 중 오류 발생", e);
+        }
+    }
     public void saveRegionCode(ResponseDto dto) throws Exception {
         List<Item> items = dto.getResponse().getBody().getItems().getItem();
         
