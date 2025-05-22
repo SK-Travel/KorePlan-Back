@@ -25,30 +25,42 @@ public class DataEntity {
 	private Long id;
 
 	private String contentId;
+
 	private String addr1;
 
 	@Column(nullable = true)
 	private String addr2;
 
-	private String mapx;
-	private String mapy;
-	private String title;
-	private String C1Code;
-	private String C2Code;
-	private String C3Code;
-	private String firstimage;
-	private String firstimage2;
+//	private String regioncode;
+//
+//	private String wardcode;
 
+	private String mapx;
+
+	private String mapy;
+
+	private String title;
+
+	private String C1Code;
+
+	private String C2Code;
+
+	private String C3Code;
+
+	private String firstimage;
+
+	private String firstimage2;
 	@Column(nullable = true)
 	private String tel;
-
-	// 연관관계 추가
+	
+	// regioncode → 연관관계 설정
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "region_id")
+	@JoinColumn(name = "regioncodeId", referencedColumnName = "id")
 	private RegionCodeEntity regionCodeEntity;
 
+	// wardcode → 연관관계 설정
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "ward_id")
+	@JoinColumn(name = "wardcodeId", referencedColumnName = "id")
 	private WardCodeEntity wardCodeEntity;
 }
 

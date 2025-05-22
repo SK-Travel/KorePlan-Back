@@ -8,11 +8,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "Ward")
+@Table(name = "Ward",
+	uniqueConstraints = @UniqueConstraint(columnNames = {"wardcode", "region"})) // 이렇게 하면 wardcode와 region의 조합이 유일해야 하므로, 같은 wardcode라도 다른 region이면 허용.
 @Getter
 @Setter
 
