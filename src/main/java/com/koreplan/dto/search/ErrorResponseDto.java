@@ -1,4 +1,4 @@
-package com.koreplan.data.dto;
+package com.koreplan.dto.search;
 
 import java.time.LocalDateTime;
 
