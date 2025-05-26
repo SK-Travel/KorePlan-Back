@@ -6,7 +6,9 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,8 @@ import com.koreplan.area.entity.RegionCodeEntity;
 import com.koreplan.area.entity.WardCodeEntity;
 import com.koreplan.area.repository.RegionCodeRepository;
 import com.koreplan.area.repository.WardCodeRepository;
+import com.koreplan.category.entity.CategoryEntity;
+import com.koreplan.category.repository.CategoryRepository;
 import com.koreplan.data.dto.DataDto;
 import com.koreplan.data.dto.ResponseDto;
 import com.koreplan.data.entity.DataEntity;
@@ -28,14 +32,17 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class DataService {
+public class SaveDataService {
 
 	private final DataRepository dataRepository;
 	private final ObjectMapper objectMapper;
 	
 	private final RegionCodeRepository regionCodeRepository;
 	private final WardCodeRepository wardCodeRepository;
-
+	private final CategoryRepository categoryRepository;
+	
+	
+	
 	@Value("${publicDataKey}")
 	private String key;
 
@@ -73,11 +80,6 @@ public class DataService {
 		try {
 			// 문자열을 ResponseDto 객체로 변환
 			ResponseDto responseDto = objectMapper.readValue(responseBody, ResponseDto.class);
-			System.out.println(responseDto.getResponse().getBody().getItems().getItem());
-			System.out.println();
-			System.out.println();
-			
-			
 			return ResponseEntity.ok(responseDto);
 		} catch (Exception e) {
 			log.error("JSON 변환 중 오류 발생: {}", responseBody, e);
@@ -85,37 +87,39 @@ public class DataService {
 		}
 	}
 
-	@PostConstruct
-	public void init() {
-		try {
-			ResponseEntity<ResponseDto> response = requestData();
-			ResponseDto dto = response.getBody();
 
-			if (dto == null) {
-				log.warn("API 응답이 null입니다.");
-				return;
-			}
+//	@PostConstruct
+//	public void init() {
+//		try {
+//			ResponseEntity<ResponseDto> response = requestData();
+//			ResponseDto dto = response.getBody();
+//
+//			if (dto == null) {
+//				log.warn("API 응답이 null입니다.");
+//				return;
+//			}
+//
+//			List<DataDto> items = dto.getResponse().getBody().getItems().getItem();
+//			
+//			saveData(dto);
+//
+//
+//		} catch (Exception e) {
+//			log.error("지역 코드 초기화 중 오류 발생", e);
+//		}
+//	}
 
-			List<DataDto> items = dto.getResponse().getBody().getItems().getItem();
-			
-			saveData(dto);
-
-			// 여기서 DB 저장 로직 추가 가능
-			// saveAll(items) 등
-
-		} catch (Exception e) {
-			log.error("지역 코드 초기화 중 오류 발생", e);
-		}
-	}
 	public void saveData(ResponseDto dto) {
+		
 	    List<DataDto> items = dto.getResponse()
 	                              .getBody()
 	                              .getItems()
 	                              .getItem();
 
 	    List<DataEntity> entities = new ArrayList<>();
-
+	    
 	    for (DataDto item : items) {
+
 			DataEntity entity = new DataEntity();
 			entity.setContentId(item.getContentid());
 			entity.setAddr1(item.getAddr1());
@@ -134,8 +138,6 @@ public class DataService {
 			}
 			entity.setTel(tel);
 	       
-	        System.out.println(item);
-	        // 지역코드 & 시군구 코드 파싱
 	        String regioncodeStr = item.getLDongRegnCd();
 	        String wardcodeStr = item.getLDongSignguCd();
 	        
@@ -161,11 +163,12 @@ public class DataService {
 	        entity.setRegionCodeEntity(regionEntity);
 	        entity.setWardCodeEntity(wardEntity);
 
+
 	        entities.add(entity);
 	        
 	        log.info("DataEntity created: {}", entity);
 	    }
-
 	    dataRepository.saveAll(entities);
+	    
 	}
 }
