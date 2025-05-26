@@ -41,11 +41,11 @@ public class DataEntity {
 
 	private String title;
 
-	private String C1Code;
+	private String c1Code;
 
-	private String C2Code;
+	private String c2Code;
 
-	private String C3Code;
+	private String c3Code;
 
 	private String firstimage;
 
