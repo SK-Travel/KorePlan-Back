@@ -1,4 +1,4 @@
-package com.koreplan.data.dto;
+package com.koreplan.dto.search;
 
 import com.koreplan.data.entity.DataEntity;
 
