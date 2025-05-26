@@ -1,4 +1,4 @@
-package com.koreplan.data.controller;
+package com.koreplan.controller.search;
 
 import java.util.List;
 
@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 //@CrossOrigin(origins = "*") // 개발용 - 운영시에는 특정 도메인으로 제한
-public class RegionDataController {
+public class SearchRestController {
 
     private final RegionFilterDataService regionFilterDataService;
 
