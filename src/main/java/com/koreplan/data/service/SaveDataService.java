@@ -87,7 +87,6 @@ public class SaveDataService {
 		}
 	}
 
-
 //	@PostConstruct
 //	public void init() {
 //		try {
@@ -103,6 +102,8 @@ public class SaveDataService {
 //			
 //			saveData(dto);
 //
+//			// 여기서 DB 저장 로직 추가 가능
+//			// saveAll(items) 등
 //
 //		} catch (Exception e) {
 //			log.error("지역 코드 초기화 중 오류 발생", e);
