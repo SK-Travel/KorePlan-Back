@@ -1,18 +1,15 @@
-package com.koreplan.data.service;
+package com.koreplan.service.search;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import com.koreplan.area.repository.RegionCodeRepository;
-import com.koreplan.area.repository.WardCodeRepository;
 import com.koreplan.category.entity.CategoryEntity;
 import com.koreplan.category.repository.CategoryRepository;
 import com.koreplan.data.entity.DataEntity;
 import com.koreplan.data.repository.DataRepository;
 
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -191,4 +188,3 @@ public class CatFilterDataService {
 //		//List<String> AllCt = findSubCategoryName("",0);
 //	}
 }
-
