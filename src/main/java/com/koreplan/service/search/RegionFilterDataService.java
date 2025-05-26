@@ -1,11 +1,10 @@
-package com.koreplan.data.service;
+package com.koreplan.service.search;
+
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
