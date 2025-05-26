@@ -17,11 +17,11 @@ public class CategoryEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String C1Code;
-    private String C1Name;
-    private String C2Code;
-    private String C2Name;
-    private String C3Code;
-    private String C3Name;
+    private String c1Code;
+    private String c1Name;
+    private String c2Code;
+    private String c2Name;
+    private String c3Code;
+    private String c3Name;
     private int rnum;
 }
