@@ -63,3 +63,4 @@ public class DataEntity {
 	@JoinColumn(name = "wardcodeId", referencedColumnName = "id")
 	private WardCodeEntity wardCodeEntity;
 }
+
