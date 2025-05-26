@@ -127,33 +127,33 @@ public class RegionCodeApiService {
     }
     // 주석 처리 해야 함.
 
-    @PostConstruct
-    public void init() {
-        try {
-            ResponseEntity<ResponseDto> response = requestRegionCodes();
-            ResponseDto dto = response.getBody();
-
-            if (dto == null) {
-                log.warn("API 응답이 null입니다.");
-                return;
-            }
-
-
-            List<Item> items = dto.getResponse().getBody().getItems().getItem();
-
-            // 예시: 아이템 리스트 출력
-            for (Item item : items) {
-                log.info("####지역 코드: {}, 지역명: {}", item.getCode(), item.getName());
-            }
-            saveRegionCode(dto);
-            
-            // 여기서 DB 저장 로직 추가 가능
-            // saveAll(items) 등
-
-        } catch (Exception e) {
-            log.error("지역 코드 초기화 중 오류 발생", e);
-        }
-    }
+//    @PostConstruct
+//    public void init() {
+//        try {
+//            ResponseEntity<ResponseDto> response = requestRegionCodes();
+//            ResponseDto dto = response.getBody();
+//
+//            if (dto == null) {
+//                log.warn("API 응답이 null입니다.");
+//                return;
+//            }
+//
+//
+//            List<Item> items = dto.getResponse().getBody().getItems().getItem();
+//
+//            // 예시: 아이템 리스트 출력
+//            for (Item item : items) {
+//                log.info("####지역 코드: {}, 지역명: {}", item.getCode(), item.getName());
+//            }
+//            saveRegionCode(dto);
+//            
+//            // 여기서 DB 저장 로직 추가 가능
+//            // saveAll(items) 등
+//
+//        } catch (Exception e) {
+//            log.error("지역 코드 초기화 중 오류 발생", e);
+//        }
+//    }
     public void saveRegionCode(ResponseDto dto) throws Exception {
         List<Item> items = dto.getResponse().getBody().getItems().getItem();
         
