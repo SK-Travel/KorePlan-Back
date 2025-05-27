@@ -120,7 +120,10 @@ public class SaveDataService {
 	    List<DataEntity> entities = new ArrayList<>();
 	    
 	    for (DataDto item : items) {
-
+	    	//여행코스는 저장하지 않게 막기.
+	    	if(item.getContenttypeid()==25) {
+	    		continue;
+	    	}
 			DataEntity entity = new DataEntity();
 			entity.setContentId(item.getContentid());
 			entity.setAddr1(item.getAddr1());
@@ -138,7 +141,9 @@ public class SaveDataService {
 				tel = tel.substring(0, 50);
 			}
 			entity.setTel(tel);
-	       
+			entity.setTheme(item.getContenttypeid());
+	        
+	        
 	        String regioncodeStr = item.getLDongRegnCd();
 	        String wardcodeStr = item.getLDongSignguCd();
 	        
