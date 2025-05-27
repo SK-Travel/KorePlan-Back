@@ -14,7 +14,7 @@ public class DataDto {
 	    private String cat2;
 	    private String cat3;
 	    private String contentid;
-	    private String contenttypeid;
+	    private int contenttypeid;
 	    private String createdtime;
 	    private String firstimage;
 	    private String firstimage2;
