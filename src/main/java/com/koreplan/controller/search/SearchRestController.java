@@ -10,10 +10,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.koreplan.data.dto.DataResponseDto;
-import com.koreplan.data.dto.RegionDataResponseDto;
 import com.koreplan.data.entity.DataEntity;
-import com.koreplan.data.service.RegionFilterDataService;
+import com.koreplan.dto.search.DataResponseDto;
+import com.koreplan.dto.search.RegionDataResponseDto;
+import com.koreplan.service.search.RegionFilterDataService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
