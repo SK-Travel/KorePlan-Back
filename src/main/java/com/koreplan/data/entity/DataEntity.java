@@ -53,6 +53,7 @@ public class DataEntity {
 	@Column(nullable = true)
 	private String tel;
 	
+	private int theme;
 	// regioncode → 연관관계 설정
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "regioncodeId", referencedColumnName = "id")
