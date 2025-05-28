@@ -25,13 +25,57 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 @Transactional
-public class CatFilterDataService {
+public class FilterDataService {
 	private final CategoryRepository categoryRepository;
 	private final DataRepository dataRepository;
 	private final RegionCodeRepository regionCodeRepository;
 	private final WardCodeRepository wardCodeRepository;
 	private final ThemeService themeService;
+	
+	private RegionCodeEntity getRegionEntity(String regionName) {
+		if (regionName == null || regionName.trim().isEmpty()) {
+			log.warn("지역명이 비어있습니다");
+			return null;
+		}
 
+		RegionCodeEntity regionEntity = regionCodeRepository.findByName(regionName.trim());
+		if (regionEntity == null) {
+			log.warn("존재하지 않는 지역명: {}", regionName);
+		}
+		return regionEntity;
+	}
+	//모든 시, 도 엔티티 갖고오는 메소드
+	public List<RegionCodeEntity> findAllRegion(){
+		List<RegionCodeEntity> regions = regionCodeRepository.findAll();
+		return regions;
+	}
+	/**
+	 * 해당 시,도에 해당하는 구,군 이름 목록 반환
+	 */
+	@Transactional(readOnly = true)
+	public List<String> findWard(String region) {
+		log.info("=== findWard 시작 - 지역: {} ===", region);
+
+		List<String> names = new ArrayList<>();
+
+		// 지역 Entity 조회
+		RegionCodeEntity regionEntity = getRegionEntity(region);
+		if (regionEntity == null) {
+			return names;
+		}
+
+		// 해당 지역의 구/군 목록 조회 및 이름 추출
+		List<WardCodeEntity> wardList = regionEntity.getWardList();
+		for (WardCodeEntity ward : wardList) {
+			names.add(ward.getName());
+		}
+
+		log.info("'{}'의 구/군 개수: {}", region, names.size());
+		log.info("=== findWard 종료 ===");
+
+		return names;
+	}
+	
 	// 테마에 대한 모든 데이터 가져오는 메소드
 	public List<DataEntity> findAllDatasByTheme(String themeName) {
 
@@ -80,47 +124,44 @@ public class CatFilterDataService {
 
 		// 상위 지역과 하위 지역(구/군) 모두 넘어온 경우
 		else {
-			// 상위 지역의 지역 엔티티 조회
-			RegionCodeEntity regionEntity = regionCodeRepository.findByName(region);
+	        // 상위 지역의 지역 엔티티 조회
+	        RegionCodeEntity regionEntity = regionCodeRepository.findByName(region);
 
-			// null 체크 추가
-			if (regionEntity == null) {
-				log.warn("지역을 찾을 수 없습니다: {}", region);
-				return results; // 빈 리스트 반환
-			}
+	        // null 체크 추가
+	        if (regionEntity == null) {
+	            log.warn("지역을 찾을 수 없습니다: {}", region);
+	            return results; // 빈 리스트 반환
+	        }
 
-			// 요청받은 하위 지역명으로 구/군 엔티티 조회
-			WardCodeEntity wardEntity = wardCodeRepository.findByName(ward);
+	        // 해당 상위 지역의 모든 하위 지역(구/군) 목록 먼저 가져오기
+	        List<WardCodeEntity> wardList = regionEntity.getWardList();
+	        
+	        //  그 목록에서 요청받은 구/군명과 일치하는 것 찾기
+	        WardCodeEntity wardEntity = wardList.stream()
+	            .filter(w -> w.getName().equals(ward))
+	            .findFirst()
+	            .orElse(null);
 
-			if (wardEntity == null) {
-				log.warn("구/군을 찾을 수 없습니다: {}", ward);
-				return results; // 빈 리스트 반환
-			}
+	        // 해당 지역에 요청받은 구/군이 없는 경우
+	        if (wardEntity == null) {
+	            log.warn("구/군 '{}'이 지역 '{}'에 속하지 않습니다.", ward, region);
+	            return results; // 빈 리스트 반환
+	        }
 
-			// 해당 상위 지역의 모든 하위 지역(구/군) 목록 가져오기
-			List<WardCodeEntity> wardList = regionEntity.getWardList();
-
-			// 요청받은 구/군이 정말 해당 시/도에 속하는지 검증
-			boolean isValidWard = wardList.stream().anyMatch(w -> w.getWardcode().equals(wardEntity.getWardcode()));
-
-			if (isValidWard) {
-				// 이전 결과를 순회하면서 해당 구/군의 데이터만 필터링
-				for (DataEntity data : preResults) {
-					// ✅ region과 ward 둘 다 체크해야 함!
-					if (data.getRegionCodeEntity() != null && data.getWardCodeEntity() != null
-							&& regionEntity.getRegioncode().equals(data.getRegionCodeEntity().getRegioncode())
-							&& wardEntity.getWardcode().equals(data.getWardCodeEntity().getWardcode())) {
-						// 조건에 맞는 데이터를 결과 리스트에 추가
-						results.add(data);
-					}
-				}
-			} else {
-				// 검증 실패 시 로그 출력
-				log.warn("구/군 '{}'이 지역 '{}'에 속하지 않습니다.", ward, region);
-			}
-			log.info("결과 개수: {} ", results.size());
-			return results;
-		}
+	        // 이전 결과를 순회하면서 해당 구/군의 데이터만 필터링
+	        for (DataEntity data : preResults) {
+	            // ✅ region과 ward 둘 다 체크해야 함!
+	            if (data.getRegionCodeEntity() != null && data.getWardCodeEntity() != null
+	                && regionEntity.getRegioncode().equals(data.getRegionCodeEntity().getRegioncode())
+	                && wardEntity.getWardcode().equals(data.getWardCodeEntity().getWardcode())) {
+	                // 조건에 맞는 데이터를 결과 리스트에 추가
+	                results.add(data);
+	            }
+	        }
+	        
+	        log.info("결과 개수: {} ", results.size());
+	        return results;
+	    }
 	}
 
 //	//대분류 찾기 기능
@@ -280,24 +321,24 @@ public class CatFilterDataService {
 	}
 
 	// 테스트용 함수.
-	@Transactional(readOnly = true)
-	@EventListener(ApplicationReadyEvent.class)
-	public void init() {
-		
-		//관광타입(12:관광지, 14:문화시설, 15:축제공연행사, 28:레포츠, 32:숙박, 38:쇼핑, 39:음식점) ID
-		//String a = "1";
+//	@Transactional(readOnly = true)
+//	@EventListener(ApplicationReadyEvent.class)
+//	public void init() {
+//		
+//		//관광타입(12:관광지, 14:문화시설, 15:축제공연행사, 28:레포츠, 32:숙박, 38:쇼핑, 39:음식점) ID
+//		String a = "1";
 //		List<DataEntity> top = findTopCategoryCode(a);
 //		List<DataEntity> middle = findMiddleCategoryCode(a);
 //		List<DataEntity> bot = findBotCategoryCode(a);
-		// List<String> firstCt = findSubCategoryName("음식",1);
-		// List<String> SecondCt = findSubCategoryName("한식",2);
-		// List<String> AllCt = findSubCategoryName("",0);
-		// List<DataEntity> test1 =
-		// findRegion1AndTopCat(findTopCategoryCode(a),"서울특별시");
-		List<DataEntity> test = findAllDatasByTheme("관광지");
-		List<DataEntity> test2 = filterDatasByRegion("서울특별시", "", test);
-		List<DataEntity> test3 = filterDatasByRegion("서울특별시", "종로구", test);
-
-	}
+//		 List<String> firstCt = findSubCategoryName("음식",1);
+//		 List<String> SecondCt = findSubCategoryName("한식",2);
+//		 List<String> AllCt = findSubCategoryName("",0);
+//		 List<DataEntity> test1 =
+//		 findRegion1AndTopCat(findTopCategoryCode(a),"서울특별시");
+//		List<DataEntity> test = findAllDatasByTheme("관광지");
+//		List<DataEntity> test2 = filterDatasByRegion("서울특별시", "", test);
+//		List<DataEntity> test3 = filterDatasByRegion("서울특별시", "종로구", test);
+//
+//	}
 
 }
