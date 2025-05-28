@@ -75,6 +75,12 @@ public class UserService {
     	return userRepository.findByNameAndEmail(name, email);
     }
     
+    // 이메일로 userId 찾기
+    public int getUserIdByEmail (String email) {
+    	Optional<UserEntity> user = userRepository.findByEmail(email);
+    	return user.get().getId();
+    }
+    
     
 	
 }
