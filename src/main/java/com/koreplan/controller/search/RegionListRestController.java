@@ -134,11 +134,11 @@ public class RegionListRestController {
     @GetMapping("/filter")
     public ResponseEntity<FilterResponse> filterData(
             @RequestParam(defaultValue = "전국") String region,
-            @RequestParam(defaultValue = "") String ward,
+            @RequestParam(defaultValue = "") List<String> ward,  // List로 변경
             @RequestParam(defaultValue = "관광지") String theme) {
-        
+
         log.info("3단계 필터링 요청 - region: {}, ward: {}, theme: {}", region, ward, theme);
-        
+
         try {
             List<DataEntity> dataList;
             String resultMessage;
@@ -151,15 +151,16 @@ public class RegionListRestController {
             // 2단계: 지역 및 구/군 필터링
             if (!"전국".equals(region)) {
                 showWards = true; // 특정 지역 선택 시 구/군 선택 UI 표시
-                
-                if (ward != null && !ward.trim().isEmpty() && !"전체".equals(ward)) {
+
+                if (!ward.isEmpty() && !ward.contains("전체")) {  // List 체크로 변경
                     // 구/군까지 선택된 경우
                     dataList = filterDataService.filterDatasByRegion(region, ward, dataList);
-                    resultMessage = region + " " + ward + "의 " + theme + " " + dataList.size() + "개를 표시합니다.";
+                    String wardNames = String.join(", ", ward);  // 구/군 이름들 조합
+                    resultMessage = region + " " + wardNames + "의 " + theme + " " + dataList.size() + "개를 표시합니다.";
                     log.info("지역 '{}', 구/군 '{}' 필터링 후 데이터: {}개", region, ward, dataList.size());
                 } else {
                     // 지역만 선택된 경우 (구/군은 전체)
-                    dataList = filterDataService.filterDatasByRegion(region, "", dataList);
+                    dataList = filterDataService.filterDatasByRegion(region, List.of(), dataList);  // 빈 List 전달
                     resultMessage = region + " 전체의 " + theme + " " + dataList.size() + "개를 표시합니다.";
                     log.info("지역 '{}' 전체 필터링 후 데이터: {}개", region, dataList.size());
                 }
@@ -177,7 +178,7 @@ public class RegionListRestController {
 
             FilterResponse response = FilterResponse.builder()
                     .selectedRegion(region)
-                    .selectedWard(ward)
+                    .selectedWard(String.join(", ", ward))  // List를 String으로 변환
                     .selectedTheme(theme)
                     .dataList(convertedData)
                     .totalCount(convertedData.size())
@@ -186,15 +187,15 @@ public class RegionListRestController {
                     .success(true)
                     .build();
 
-            log.info("필터링 완료 - {}의 {} {} {}개", region, ward.isEmpty() ? "전체" : ward, theme, convertedData.size());
+            log.info("필터링 완료 - {}의 {} {} {}개", region, ward.isEmpty() ? "전체" : String.join(", ", ward), theme, convertedData.size());
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
             log.error("필터링 중 오류 발생", e);
-            
+
             FilterResponse errorResponse = FilterResponse.builder()
                     .selectedRegion(region)
-                    .selectedWard(ward)
+                    .selectedWard(ward.isEmpty() ? "" : String.join(", ", ward))  // 에러 응답도 수정
                     .selectedTheme(theme)
                     .dataList(List.of())
                     .totalCount(0)
@@ -202,7 +203,7 @@ public class RegionListRestController {
                     .showWards(false)
                     .success(false)
                     .build();
-                    
+
             return ResponseEntity.ok(errorResponse);
         }
     }

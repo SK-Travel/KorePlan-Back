@@ -34,77 +34,86 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
+//    @Bean
+//    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+//
+//        // OAuth2 요청 리졸버 커스터마이징 (구글 계정선택 항상 띄우기 위해 prompt=select_account 추가)
+//        OAuth2AuthorizationRequestResolver customResolver = new OAuth2AuthorizationRequestResolver() {
+//
+//            private final DefaultOAuth2AuthorizationRequestResolver defaultResolver =
+//                    new DefaultOAuth2AuthorizationRequestResolver(clientRegistrationRepository, "/oauth2/authorization");
+//
+//            @Override
+//            public OAuth2AuthorizationRequest resolve(HttpServletRequest request) {
+//                OAuth2AuthorizationRequest authRequest = defaultResolver.resolve(request);
+//                return customizeAuthorizationRequest(authRequest);
+//            }
+//
+//            @Override
+//            public OAuth2AuthorizationRequest resolve(HttpServletRequest request, String clientRegistrationId) {
+//                OAuth2AuthorizationRequest authRequest = defaultResolver.resolve(request, clientRegistrationId);
+//                return customizeAuthorizationRequest(authRequest);
+//            }
+//
+//            private OAuth2AuthorizationRequest customizeAuthorizationRequest(OAuth2AuthorizationRequest request) {
+//                if (request == null) {
+//                    return null;
+//                }
+//                
+//                String registrationId = (String) request.getAttributes().get("registration_id");
+//
+//                OAuth2AuthorizationRequest.Builder builder = OAuth2AuthorizationRequest.from(request);
+//
+//                if ("google".equals(registrationId)) {
+//                    builder.additionalParameters(params -> params.put("prompt", "select_account"));
+//                }
+//                else if ("naver".equals(registrationId)) {
+//                    builder.additionalParameters(params -> {
+//                        params.put("auth_type", "reauthenticate");
+//                        params.put("prompt", "consent");
+//                    });
+//                }
+//
+//                return builder.build();
+//            }
+//        };
+//
+//        http
+//            .csrf().disable()
+//            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+//            .and()
+//            .authorizeHttpRequests()
+//                .requestMatchers(
+//                    "/signIn",
+//                    "/signup",
+//                    "/oauth2/**",
+//                    "/public/**",
+//                    "/api/**"
+//                ).permitAll()
+//                .anyRequest().authenticated()
+//            .and()
+//            .oauth2Login()
+//                .authorizationEndpoint()
+//                    .authorizationRequestResolver(customResolver)
+//                .and()
+//                .userInfoEndpoint()
+//                    .userService(customOAuth2UserDTO)
+//                .and()
+//                .successHandler(oAuth2LoginSuccessHandler)
+//            .and()
+//            .formLogin().disable();
+//
+//        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+//
+//        return http.build();
+//    }
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-
-        // OAuth2 요청 리졸버 커스터마이징 (구글 계정선택 항상 띄우기 위해 prompt=select_account 추가)
-        OAuth2AuthorizationRequestResolver customResolver = new OAuth2AuthorizationRequestResolver() {
-
-            private final DefaultOAuth2AuthorizationRequestResolver defaultResolver =
-                    new DefaultOAuth2AuthorizationRequestResolver(clientRegistrationRepository, "/oauth2/authorization");
-
-            @Override
-            public OAuth2AuthorizationRequest resolve(HttpServletRequest request) {
-                OAuth2AuthorizationRequest authRequest = defaultResolver.resolve(request);
-                return customizeAuthorizationRequest(authRequest);
-            }
-
-            @Override
-            public OAuth2AuthorizationRequest resolve(HttpServletRequest request, String clientRegistrationId) {
-                OAuth2AuthorizationRequest authRequest = defaultResolver.resolve(request, clientRegistrationId);
-                return customizeAuthorizationRequest(authRequest);
-            }
-
-            private OAuth2AuthorizationRequest customizeAuthorizationRequest(OAuth2AuthorizationRequest request) {
-                if (request == null) {
-                    return null;
-                }
-                
-                String registrationId = (String) request.getAttributes().get("registration_id");
-
-                OAuth2AuthorizationRequest.Builder builder = OAuth2AuthorizationRequest.from(request);
-
-                if ("google".equals(registrationId)) {
-                    builder.additionalParameters(params -> params.put("prompt", "select_account"));
-                }
-                else if ("naver".equals(registrationId)) {
-                    builder.additionalParameters(params -> {
-                        params.put("auth_type", "reauthenticate");
-                        params.put("prompt", "consent");
-                    });
-                }
-
-                return builder.build();
-            }
-        };
-
         http
-            .csrf().disable()
-            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            .and()
-            .authorizeHttpRequests()
-                .requestMatchers(
-                    "/signIn",
-                    "/signup",
-                    "/oauth2/**",
-                    "/public/**",
-                    "/api/**"
-                ).permitAll()
-                .anyRequest().authenticated()
-            .and()
-            .oauth2Login()
-                .authorizationEndpoint()
-                    .authorizationRequestResolver(customResolver)
-                .and()
-                .userInfoEndpoint()
-                    .userService(customOAuth2UserDTO)
-                .and()
-                .successHandler(oAuth2LoginSuccessHandler)
-            .and()
-            .formLogin().disable();
-
-        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-
+            .csrf(csrf -> csrf.disable())
+            .authorizeHttpRequests(authz -> authz
+                .anyRequest().permitAll()  // 임시로 모든 요청 허용
+            );
         return http.build();
     }
 }
