@@ -6,9 +6,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -18,14 +16,12 @@ import com.koreplan.area.entity.RegionCodeEntity;
 import com.koreplan.area.entity.WardCodeEntity;
 import com.koreplan.area.repository.RegionCodeRepository;
 import com.koreplan.area.repository.WardCodeRepository;
-import com.koreplan.category.entity.CategoryEntity;
 import com.koreplan.category.repository.CategoryRepository;
 import com.koreplan.data.dto.DataDto;
 import com.koreplan.data.dto.ResponseDto;
 import com.koreplan.data.entity.DataEntity;
 import com.koreplan.data.repository.DataRepository;
 
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 

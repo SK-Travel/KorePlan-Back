@@ -2,9 +2,9 @@ package com.koreplan.service.search;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,7 +31,7 @@ public class FilterDataService {
 	private final RegionCodeRepository regionCodeRepository;
 	private final WardCodeRepository wardCodeRepository;
 	private final ThemeService themeService;
-	
+
 	private RegionCodeEntity getRegionEntity(String regionName) {
 		if (regionName == null || regionName.trim().isEmpty()) {
 			log.warn("지역명이 비어있습니다");
@@ -44,11 +44,13 @@ public class FilterDataService {
 		}
 		return regionEntity;
 	}
-	//모든 시, 도 엔티티 갖고오는 메소드
-	public List<RegionCodeEntity> findAllRegion(){
+
+	// 모든 시, 도 엔티티 갖고오는 메소드
+	public List<RegionCodeEntity> findAllRegion() {
 		List<RegionCodeEntity> regions = regionCodeRepository.findAll();
 		return regions;
 	}
+
 	/**
 	 * 해당 시,도에 해당하는 구,군 이름 목록 반환
 	 */
@@ -75,7 +77,7 @@ public class FilterDataService {
 
 		return names;
 	}
-	
+
 	// 테마에 대한 모든 데이터 가져오는 메소드
 	public List<DataEntity> findAllDatasByTheme(String themeName) {
 
@@ -87,7 +89,8 @@ public class FilterDataService {
 
 	// 테마에 대한 모든 데이터중 지역을 받아 데이터를 필터링하는 메소드
 	// 시,도만 넘겨 받았을 경우, 시,도와 구,군까지 받았을 경우 두가지에 모두 사용 가능하게 만들어봤음
-	public List<DataEntity> filterDatasByRegion(String region, String ward, List<DataEntity> preResults) {
+	// 구,군을 다중 선택할 수 있도록 하기 위해서 매개변수를 List형식으로 바꿈.
+	public List<DataEntity> filterDatasByRegion(String region, List<String> ward, List<DataEntity> preResults) {
 		// 필터링된 결과를 저장할 DataEntity형 리스트 선언
 		List<DataEntity> results = new ArrayList<>();
 
@@ -124,44 +127,68 @@ public class FilterDataService {
 
 		// 상위 지역과 하위 지역(구/군) 모두 넘어온 경우
 		else {
-	        // 상위 지역의 지역 엔티티 조회
-	        RegionCodeEntity regionEntity = regionCodeRepository.findByName(region);
+			// 상위 지역의 지역 엔티티 조회
+			RegionCodeEntity regionEntity = regionCodeRepository.findByName(region);
 
-	        // null 체크 추가
-	        if (regionEntity == null) {
-	            log.warn("지역을 찾을 수 없습니다: {}", region);
-	            return results; // 빈 리스트 반환
-	        }
+			// null 체크 추가
+			if (regionEntity == null) {
+				log.warn("지역을 찾을 수 없습니다: {}", region);
+				return results; // 빈 리스트 반환
+			}
 
-	        // 해당 상위 지역의 모든 하위 지역(구/군) 목록 먼저 가져오기
-	        List<WardCodeEntity> wardList = regionEntity.getWardList();
-	        
-	        //  그 목록에서 요청받은 구/군명과 일치하는 것 찾기
-	        WardCodeEntity wardEntity = wardList.stream()
-	            .filter(w -> w.getName().equals(ward))
-	            .findFirst()
-	            .orElse(null);
+			// 해당 상위 지역의 모든 하위 지역(구/군) 목록 먼저 가져오기
+			List<WardCodeEntity> wardList = regionEntity.getWardList();
 
-	        // 해당 지역에 요청받은 구/군이 없는 경우
-	        if (wardEntity == null) {
-	            log.warn("구/군 '{}'이 지역 '{}'에 속하지 않습니다.", ward, region);
-	            return results; // 빈 리스트 반환
-	        }
+			// ward를 순회하면서 해당하는 구/군을 찾아야함.
+			// 해당 ward엔터티들을 저장할 리스트 변수 선언
+			List<WardCodeEntity> selectedWards = new ArrayList<>();
+			for (String a : ward) {
+				// 변수 a에 들어가는 값 = 사용자가 클릭한 지역구 값 중 하나
+				// a에 해당하는 ward엔티티 찾기. wardList에서
+				WardCodeEntity wardEntity = wardList.stream().filter(w -> w.getName().equals(a)).findFirst()
+						.orElse(null);
+				// 해당하는 값만 selected 리스트에 들어가게끔한다.
+				if (wardEntity != null) {
+					selectedWards.add(wardEntity);
+				}
 
-	        // 이전 결과를 순회하면서 해당 구/군의 데이터만 필터링
-	        for (DataEntity data : preResults) {
-	            // ✅ region과 ward 둘 다 체크해야 함!
-	            if (data.getRegionCodeEntity() != null && data.getWardCodeEntity() != null
-	                && regionEntity.getRegioncode().equals(data.getRegionCodeEntity().getRegioncode())
-	                && wardEntity.getWardcode().equals(data.getWardCodeEntity().getWardcode())) {
-	                // 조건에 맞는 데이터를 결과 리스트에 추가
-	                results.add(data);
-	            }
-	        }
-	        
-	        log.info("결과 개수: {} ", results.size());
-	        return results;
-	    }
+			}
+
+			// 해당 지역에 요청받은 구/군이 없는 경우
+			if (selectedWards.isEmpty()) {
+				log.warn("구/군 '{}'이 지역 '{}'에 속하지 않습니다.", ward, region);
+				return results;
+			}
+			Set<Long> selectedWardCodes = selectedWards.stream().map(WardCodeEntity::getWardcode)
+					.collect(Collectors.toSet());
+
+			// O(1) 검색으로 필터링
+			for (DataEntity data : preResults) {
+				if (data.getRegionCodeEntity() != null && data.getWardCodeEntity() != null
+						&& regionEntity.getRegioncode().equals(data.getRegionCodeEntity().getRegioncode())
+						&& selectedWardCodes.contains(data.getWardCodeEntity().getWardcode())) {
+					results.add(data);
+				}
+			}
+//			// 이전 결과를 순회하면서 해당 구/군의 데이터만 필터링
+//			for (DataEntity data : preResults) {
+//				//선택한 지역구 리스트들을 하나하나 확인하기 위한 2중 for문 작성
+//				for (WardCodeEntity wardEntity : selectedWards) {
+//					// ✅ region과 ward 둘 다 체크해야 함!
+//					if (data.getRegionCodeEntity() != null && data.getWardCodeEntity() != null
+//							&& regionEntity.getRegioncode().equals(data.getRegionCodeEntity().getRegioncode())
+//							&& wardEntity.getWardcode().equals(data.getWardCodeEntity().getWardcode())) {
+//						// 조건에 맞는 데이터를 결과 리스트에 추가
+//						results.add(data);
+//						//조건식에 맞는 경우 for문 빠져나가서 다른 데이터로 변경하게끔.(성능 향상?)
+//						break;
+//					}
+//				}
+//			}
+
+			log.info("결과 개수: {} ", results.size());
+			return results;
+		}
 	}
 
 //	//대분류 찾기 기능
