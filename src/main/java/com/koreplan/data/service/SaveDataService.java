@@ -116,8 +116,8 @@ public class SaveDataService {
 	    List<DataEntity> entities = new ArrayList<>();
 	    
 	    for (DataDto item : items) {
-	    	//여행코스는 저장하지 않게 막기.
-	    	if(item.getContenttypeid()==25) {
+	    	//여행코스랑 축제는 저장하지 않게 막기.(여행코스는 사용하지 않을 데이터, 축제는 다른 엔티티에 저장할 것임)
+	    	if(item.getContenttypeid()==25||item.getContenttypeid()==15) {
 	    		continue;
 	    	}
 			DataEntity entity = new DataEntity();
@@ -138,7 +138,7 @@ public class SaveDataService {
 			}
 			entity.setTel(tel);
 			entity.setTheme(item.getContenttypeid());
-	        
+	        entity.setViewCount(0); //초기 조회수 0
 	        
 	        String regioncodeStr = item.getLDongRegnCd();
 	        String wardcodeStr = item.getLDongSignguCd();

@@ -26,6 +26,7 @@ public class DataResponseDto {
     private String firstimage;
     private String firstimage2;
     private String tel;
+    private int theme;
     
     // 연관관계 정보
     private String regionName;
@@ -49,6 +50,7 @@ public class DataResponseDto {
             .firstimage(entity.getFirstimage())
             .firstimage2(entity.getFirstimage2())
             .tel(entity.getTel())
+            .theme(entity.getTheme())
             // 연관관계 엔티티에서 정보 추출
             .regionName(entity.getRegionCodeEntity() != null ? 
                        entity.getRegionCodeEntity().getName() : null)
