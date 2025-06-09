@@ -2,6 +2,7 @@ package com.koreplan.openAi.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -236,7 +237,7 @@ public class OpenAiService {
             return filteredPlaces;
         }
 
-        // 1. region, ward 명으로 RegionCodeEntity, WardCodeEntity 조회
+        // 1. region, ward 명으로 RegionCodeEntity, WardCodeEntity 조회 ---> 지역 정보 조회
         Optional<RegionCodeEntity> regionOpt = regionCodeRepository.findRegionByNameForAI(region);
         if (regionOpt.isEmpty()) return filteredPlaces;
         RegionCodeEntity regionEntity = regionOpt.get();
@@ -246,31 +247,65 @@ public class OpenAiService {
         WardCodeEntity wardEntity = wardOpt.get();
 
 
-        // 2. filteredPlaces에 이미 포함된 장소 제목 추출 (중복 방지)
-        Set<String> existingNames = filteredPlaces.stream()
-                .map(p -> p.get("name").asText())
+        // 정규화된 기존 이름 목록
+        Set<String> normalizedExistingNames = filteredPlaces.stream()
+                .map(p -> normalize(p.get("name").asText()))
                 .collect(Collectors.toSet());
         
-        // DB에서 추가 가능한 장소들 조회 (최대 원하는 개수까지)
-        List<DataEntity> dbCandidates = dataRepository.findTopNByRegionCodeEntityAndWardCodeEntityAndTitleNotIn(regionEntity, wardEntity, existingNames, desiredCount - filteredPlaces.size());
+        // DB에서 전체 후보 조회
+        List<DataEntity> allDbPlaces = dataRepository.findByRegionCodeEntityAndWardCodeEntity(regionEntity, wardEntity);
 
+        // 기존 이름과 중복되지 않는 후보만 추출
+        List<DataEntity> dbCandidates = allDbPlaces.stream()
+                .filter(d -> !normalizedExistingNames.contains(normalize(d.getTitle())))
+                .limit(desiredCount - filteredPlaces.size())
+                .collect(Collectors.toList());
+        
         List<JsonNode> filledList = new ArrayList<>(filteredPlaces);
+        
+        // 4. 마지막 day/order 구하기
+        int currentDay = 1;
+        int currentOrder = 0;
+        if (!filteredPlaces.isEmpty()) {
+            JsonNode last = filteredPlaces.get(filteredPlaces.size() - 1);
+            currentDay = last.get("day").asInt();
+            currentOrder = last.get("order").asInt();
+        }
 
-        // 4. 부족한 만큼 후보지에서 필터링해서 추가
+        // 5. 보완장소 추가
         for (DataEntity data : dbCandidates) {
             ObjectNode node = mapper.createObjectNode();
-            node.put("day", 0);  // GPT 응답엔 day, order 값이 있지만 DB 보완 장소는 임시 0으로 넣음
-            node.put("order", 0);
+            String name = data.getTitle();
+            String normalizedName = normalize(name);
+            
+            node.put("name", name);
             node.put("region", region);
             node.put("ward", ward);
-            node.put("name", data.getTitle());
-            node.put("description", data.getDescription() == null ? "" : data.getDescription());
             node.put("lat", data.getMapx());
             node.put("lng", data.getMapy());
+            
+            // 순차적으로 day/order 증가
+            if (currentOrder >= 3) {
+                currentDay++;
+                currentOrder = 1;
+            } else {
+                currentOrder++;
+            }
+
+            node.put("day", currentDay);
+            node.put("order", currentOrder);
+            // ✅ description은 DB에 없으므로 기본값만 사용
+            node.put("description", "설명 준비 중입니다.");
+
             filledList.add(node);
         }
 
-        return filteredPlaces;
+        return filledList;
+    }
+    
+    // 공백 제거 + 소문자 변환
+    private String normalize(String input) {
+        return input == null ? "" : input.toLowerCase().replaceAll("\\s+", "");
     }
     
     /**
