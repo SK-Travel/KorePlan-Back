@@ -1,13 +1,17 @@
 package com.koreplan.data.repository;
 
 import java.util.List;
+<<<<<<< HEAD
+import java.util.Set;
+=======
 import java.util.Optional;
+>>>>>>> d074815604e6544099fdbdca62238c304f178cc9
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-
 import com.koreplan.area.entity.RegionCodeEntity;
 import com.koreplan.area.entity.WardCodeEntity;
 import com.koreplan.data.entity.DataEntity;
@@ -35,16 +39,11 @@ public interface DataRepository extends JpaRepository<DataEntity,Long> {
 	// AI 필터링
 	boolean existsByRegionCodeEntityAndWardCodeEntityAndTitle (RegionCodeEntity region, WardCodeEntity ward, String title);
 	
-    /**
-     * 특정 지역(Region)과 동(Ward)에 해당하는 장소 리스트를
-     * 장소명(title) 오름차순 정렬하여 반환.
-     *
-     * @param regionCodeEntity 지역 엔티티
-     * @param wardCodeEntity 동 엔티티
-     * @return 해당 조건에 맞는 장소 리스트
-     */
-    List<DataEntity> findByRegionCodeEntityAndWardCodeEntityOrderByTitleAsc( RegionCodeEntity regionCodeEntity, WardCodeEntity wardCodeEntity);
-    
+	// 대소문자 무시 + 공백 무시
+	@Query("SELECT d FROM DataEntity d " + "WHERE d.regionCodeEntity = :region " + "AND d.wardCodeEntity = :ward")
+    List<DataEntity> findByRegionCodeEntityAndWardCodeEntity(@Param("region") RegionCodeEntity region,
+        @Param("ward") WardCodeEntity ward);
+
     //조회수 증가 메서드
     //데이터 엔티티의 고유 id를 통해 값을 변경시키는 메서드임.
     @Modifying
