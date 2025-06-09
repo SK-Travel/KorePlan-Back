@@ -1,8 +1,6 @@
 package com.koreplan.data.entity;
-
 import com.koreplan.area.entity.RegionCodeEntity;
 import com.koreplan.area.entity.WardCodeEntity;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -23,45 +21,36 @@ public class DataEntity {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
-
 	private String contentId;
-
 	private String addr1;
-
 	@Column(nullable = true)
 	private String addr2;
-
 //	private String regioncode;
 //
 //	private String wardcode;
-
 	private String mapx;
-
 	private String mapy;
-
 	private String title;
-
 	private String c1Code;
-
 	private String c2Code;
-
 	private String c3Code;
-
 	private String firstimage;
-
 	private String firstimage2;
 	@Column(nullable = true)
 	private String tel;
 	
 	private int theme;
+	
+	// 조회수 추가
+	@Column(name = "view_count")
+	private int viewCount = 0;
+	
 	// regioncode → 연관관계 설정
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "regioncodeId", referencedColumnName = "id")
 	private RegionCodeEntity regionCodeEntity;
-
 	// wardcode → 연관관계 설정
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "wardcodeId", referencedColumnName = "id")
 	private WardCodeEntity wardCodeEntity;
 }
-

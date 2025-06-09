@@ -108,8 +108,7 @@ public class RegionListRestController {
                 return ResponseEntity.notFound().build();
             }
             
-            // 맨 앞에 "전체" 추가 (해당 지역 전체 선택용)
-            wardNames.add(0, "전체");
+            
 
             WardListResponse response = WardListResponse.builder()
                     .regionName(regionName)

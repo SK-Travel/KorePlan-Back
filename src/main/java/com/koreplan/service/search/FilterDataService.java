@@ -82,7 +82,10 @@ public class FilterDataService {
 	public List<DataEntity> findAllDatasByTheme(String themeName) {
 
 		int themeNum = themeService.getThemeByName(themeName).getContentTypeId();
-		List<DataEntity> results = dataRepository.findByTheme(themeNum);
+//		List<DataEntity> results = dataRepository.findByTheme(themeNum);
+		//기존 정렬되지 않은 값을 넣은 대신 조회수로 정렬함. 추후 총 계산된 데이터값을 토대로 정렬바꿈
+		//ex -> (좋아요수+조회수+평점)
+		List<DataEntity> results = dataRepository.findByThemeOrderByViewCountDesc(themeNum);
 		log.info("결과 개수: {} ", results.size());
 		return results;
 	}
