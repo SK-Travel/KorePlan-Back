@@ -111,9 +111,28 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
+            .sessionManagement(session -> 
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
-                .anyRequest().permitAll()  // 임시로 모든 요청 허용
-            );
+                .requestMatchers(
+                    "/signIn",
+                    "/signup", 
+                    "/oauth2/**",
+                    "/login/oauth2/code/**",  // OAuth2 콜백 URL
+                    "/public/**",
+                    "/api/**"
+                ).permitAll()
+                .anyRequest().authenticated()
+            )
+            .oauth2Login(oauth2 -> oauth2
+                .userInfoEndpoint(userInfo -> 
+                    userInfo.userService(customOAuth2UserDTO))
+                .successHandler(oAuth2LoginSuccessHandler)
+            )
+            .formLogin(form -> form.disable());
+
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
     }
 }
