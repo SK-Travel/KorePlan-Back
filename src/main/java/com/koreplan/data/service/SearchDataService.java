@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 import com.koreplan.data.dto.DataStatsDto;
 import com.koreplan.data.entity.DataEntity;
 import com.koreplan.data.repository.DataRepository;
+import com.koreplan.entity.theme.ThemeEntity;
+import com.koreplan.repository.theme.ThemeRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -19,6 +21,9 @@ import lombok.extern.slf4j.Slf4j;
 public class SearchDataService {
     @Autowired
     private DataRepository dataRepository;
+    
+    @Autowired
+    private ThemeRepository themeRepository;
     
     /**
      * 데이터 통계 조회 (ID로)
@@ -54,4 +59,20 @@ public class SearchDataService {
         
         return getDataStats(data.getId());
     }
+    
+    
+    // AI 필터링 Data의 Theme -> Theme의 ContentTypeId -> Theme의 name가져오는 로직
+    public String getThemeNameAndByContentTypeId(String contentTypeId) {
+    	
+    	DataEntity data = dataRepository.findByContentId(contentTypeId)
+    			.orElseThrow(() -> new RuntimeException());
+    	
+    	int themeCode = data.getTheme();
+    	
+    	return themeRepository.findByContentTypeId(themeCode)
+    			.map(ThemeEntity::getThemeName)
+    			.orElse("알 수 없음");
+    }
+    
+    
 }
