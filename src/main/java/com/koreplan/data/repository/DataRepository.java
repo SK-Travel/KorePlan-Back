@@ -1,13 +1,6 @@
 package com.koreplan.data.repository;
-
 import java.util.List;
-
-import java.util.Set;
-
 import java.util.Optional;
-
-
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -15,8 +8,6 @@ import org.springframework.data.repository.query.Param;
 import com.koreplan.area.entity.RegionCodeEntity;
 import com.koreplan.area.entity.WardCodeEntity;
 import com.koreplan.data.entity.DataEntity;
-
-
 
 public interface DataRepository extends JpaRepository<DataEntity,Long> {
 	//-----------------카테고리별 데이터 탐색------------//
@@ -36,13 +27,18 @@ public interface DataRepository extends JpaRepository<DataEntity,Long> {
 	// 조회수 높은 순으로 정렬된 테마별 데이터 검색 
 	List<DataEntity> findByThemeOrderByViewCountDesc(int theme);
 	
-	// AI 필터링
-	boolean existsByRegionCodeEntityAndWardCodeEntityAndTitle (RegionCodeEntity region, WardCodeEntity ward, String title);
+	// ✅ 존재 여부 확인 (단일 제목 + themeId 리스트 기준)
+	@Query("SELECT COUNT(d) > 0 FROM DataEntity d " + "WHERE d.regionCodeEntity = :region " + "AND d.wardCodeEntity = :ward " + "AND d.title = :title " + "AND d.theme IN :themeIds")
+	boolean existsByRegionCodeEntityAndWardCodeEntityAndTitle (@Param("region") RegionCodeEntity region,
+		    @Param("ward") WardCodeEntity ward,
+		    @Param("title") String title,
+		    @Param("themeIds") List<Integer> themeIds);
 	
-	// 대소문자 무시 + 공백 무시
-	@Query("SELECT d FROM DataEntity d " + "WHERE d.regionCodeEntity = :region " + "AND d.wardCodeEntity = :ward")
-    List<DataEntity> findByRegionCodeEntityAndWardCodeEntity(@Param("region") RegionCodeEntity region,
-        @Param("ward") WardCodeEntity ward);
+    // --- 지역 + 테마로 조회 (대소문자 무시X, 공백 무시X) ---
+    @Query("SELECT d FROM DataEntity d " +  "WHERE d.regionCodeEntity = :region " + "AND d.wardCodeEntity = :ward " + "AND d.theme IN :themeIds")
+    List<DataEntity> findByRegionCodeEntityAndWardCodeEntityAndThemeIn (@Param("region") RegionCodeEntity region,
+        @Param("ward") WardCodeEntity ward,
+        @Param("themeIds") List<Integer> themeIds);
 
     //조회수 증가 메서드
     //데이터 엔티티의 고유 id를 통해 값을 변경시키는 메서드임.

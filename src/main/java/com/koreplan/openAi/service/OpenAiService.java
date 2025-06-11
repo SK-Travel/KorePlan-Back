@@ -1,6 +1,10 @@
 package com.koreplan.openAi.service;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -177,13 +181,21 @@ public class OpenAiService {
 	    };
 	}
 	
+	// 대소문자 무시, 공백 무시(같게 한단 뜻)
+	private boolean isSimilarName(String name1, String name2) {
+	    if (name1 == null || name2 == null) return false;
+	    String norm1 = name1.replaceAll("\\s+", "").toLowerCase();
+	    String norm2 = name2.replaceAll("\\s+", "").toLowerCase();
+	    return norm1.equals(norm2);
+	}
 	
 	// 필터링 로직
-	public List<JsonNode> filterExistingPlaces (JsonNode gptArray) {
+	public List<JsonNode> filterExistingPlaces (JsonNode gptArray, List<Integer> themeIds) {
 		List<JsonNode> result = new ArrayList<>();
 		
 		for (JsonNode place : gptArray) {
 			String regionName = normalizeRegionName(place.get("region").asText()); // 서울 특별시
+//			String regionName = place.get("region").asText();
 	        String wardName = place.has("ward") ? place.get("ward").asText() : null;  // ex) 강남구
 	        String placeName = place.has("name") ? place.get("name").asText() : null;
 	        
@@ -199,8 +211,9 @@ public class OpenAiService {
 	        if (wardOpt.isEmpty()) continue;
 	        WardCodeEntity wardEntity = wardOpt.get();
 
-	        // 3. 장소가 해당 ward, region 조합으로 실제 DB에 존재하는지 확인
-	        boolean exists = dataRepository.existsByRegionCodeEntityAndWardCodeEntityAndTitle(regionEntity, wardEntity, placeName);
+	        // ✅ 유사한 이름 비교 (공백, 대소문자 무시)
+	        List<DataEntity> candidates = dataRepository.findByRegionCodeEntityAndWardCodeEntityAndThemeIn(regionEntity, wardEntity, themeIds);
+	        boolean exists = candidates.stream().anyMatch(d -> isSimilarName(d.getTitle(), placeName));
 	        if (exists) {
 	        	// day, order 포함하여 그대로 복사
 	            ObjectNode node = mapper.createObjectNode();
@@ -215,7 +228,7 @@ public class OpenAiService {
 	            result.add(node);
 	        }
 		}
-		
+		System.out.println("[필터링] GPT 추천 " + gptArray.size() + " → DB 존재 " + result.size());
 		return result;
 	}
 	
@@ -231,81 +244,47 @@ public class OpenAiService {
      * @param ward 동명 (예: "강남구")
      * @return 보완된 장소 리스트 (filteredPlaces에 부족분 추가됨)
      */
-    public List<JsonNode> fillWithDbPlaces(List<JsonNode> filteredPlaces, int desiredCount, String region, String ward) {
+    public List<JsonNode> fillWithDbPlacesOnly(List<String> missingKeys, String region, String ward, List<Integer> themeIds) {
         
-    	if (filteredPlaces.size() >= desiredCount) {
-            return filteredPlaces;
-        }
+    	 RegionCodeEntity regionEntity  = regionCodeRepository.findRegionByNameForAI(region).orElse(null);
+    	    if (regionEntity == null) return List.of();
 
-        // 1. region, ward 명으로 RegionCodeEntity, WardCodeEntity 조회 ---> 지역 정보 조회
-        Optional<RegionCodeEntity> regionOpt = regionCodeRepository.findRegionByNameForAI(region);
-        if (regionOpt.isEmpty()) return filteredPlaces;
-        RegionCodeEntity regionEntity = regionOpt.get();
+    	    WardCodeEntity wardEntity = wardCodeRepository.findWardByNameAndRegionForAI(ward, regionEntity).orElse(null);
+    	    if (wardEntity == null) return List.of();
 
-        Optional<WardCodeEntity> wardOpt = wardCodeRepository.findWardByNameAndRegionForAI(ward, regionEntity);
-        if (wardOpt.isEmpty()) return filteredPlaces;
-        WardCodeEntity wardEntity = wardOpt.get();
+    	    List<DataEntity> allDbPlaces = dataRepository.findByRegionCodeEntityAndWardCodeEntityAndThemeIn(regionEntity, wardEntity, themeIds);
 
+    	    // 중복 방지용
+    	    Set<String> usedNames = new HashSet<>();
+    	    List<JsonNode> result = new ArrayList<>();
 
-        // 정규화된 기존 이름 목록
-        Set<String> normalizedExistingNames = filteredPlaces.stream()
-                .map(p -> normalize(p.get("name").asText()))
-                .collect(Collectors.toSet());
-        
-        // DB에서 전체 후보 조회
-        List<DataEntity> allDbPlaces = dataRepository.findByRegionCodeEntityAndWardCodeEntity(regionEntity, wardEntity);
+    	    int index = 0;
+    	    for (String key : missingKeys) {
+    	        if (index >= allDbPlaces.size()) break;
 
-        // 기존 이름과 중복되지 않는 후보만 추출
-        List<DataEntity> dbCandidates = allDbPlaces.stream()
-                .filter(d -> !normalizedExistingNames.contains(normalize(d.getTitle())))
-                .limit(desiredCount - filteredPlaces.size())
-                .collect(Collectors.toList());
-        
-        List<JsonNode> filledList = new ArrayList<>(filteredPlaces);
-        
-        // 4. 마지막 day/order 구하기
-        int currentDay = 1;
-        int currentOrder = 0;
-        if (!filteredPlaces.isEmpty()) {
-            JsonNode last = filteredPlaces.get(filteredPlaces.size() - 1);
-            currentDay = last.get("day").asInt();
-            currentOrder = last.get("order").asInt();
-        }
+    	        while (index < allDbPlaces.size()) {
+    	            DataEntity data = allDbPlaces.get(index++);
+    	            String norm = normalize(data.getTitle());
+    	            if (usedNames.contains(norm)) continue;
+    	            usedNames.add(norm);
 
-        // 5. 보완장소 추가
-        for (DataEntity data : dbCandidates) {
-            ObjectNode node = mapper.createObjectNode();
-            String name = data.getTitle();
-            String normalizedName = normalize(name);
-            
-            node.put("name", name);
-            node.put("region", region);
-            node.put("ward", ward);
-            node.put("lat", data.getMapx());
-            node.put("lng", data.getMapy());
-            
-            // 순차적으로 day/order 증가
-            if (currentOrder >= 3) {
-                currentDay++;
-                currentOrder = 1;
-            } else {
-                currentOrder++;
-            }
-
-            node.put("day", currentDay);
-            node.put("order", currentOrder);
-            // ✅ description은 DB에 없으므로 기본값만 사용
-            node.put("description", "설명 준비 중입니다.");
-
-            filledList.add(node);
-        }
-
-        return filledList;
+    	            ObjectNode node = mapper.createObjectNode();
+    	            node.put("region", region);
+    	            node.put("ward", ward);
+    	            node.put("name", data.getTitle());
+    	            node.put("description", "설명 준비 중입니다.");
+    	            node.put("lng", Double.parseDouble(data.getMapx()));
+    	            node.put("lat", Double.parseDouble(data.getMapy()));
+    	            result.add(node);
+    	            break;
+    	        }
+    	    }
+        return result;
     }
     
     // 공백 제거 + 소문자 변환
     private String normalize(String input) {
-        return input == null ? "" : input.toLowerCase().replaceAll("\\s+", "");
+        return input == null ? "" : input.toLowerCase().replaceAll("[\\s()\\[\\]\\p{Punct}]", "");
     }
     
     /**
@@ -318,33 +297,76 @@ public class OpenAiService {
      * @return 필터링 + 보완된 장소 리스트
      */
     
-    public List<JsonNode> getFilteredAndFilledPlaces(JsonNode gptArray, int gptCount) {
-        // 1. 필터링
-        List<JsonNode> filtered = filterExistingPlaces(gptArray);
+    public List<JsonNode> getFilteredAndFilledPlaces(JsonNode gptArray, int gptCount, List<Integer> themeIds) {
+        List<JsonNode> filtered = filterExistingPlaces(gptArray, themeIds);
 
-        // 지역별, 동별로 그룹핑해서 부족한 개수 채우기
-        // (예: 여러 날, 여러 동이 섞여 있어도 동별로 보완 처리)
-        // 간단히 한 번에 처리하려면 모든 장소 같은 지역, 동 이름 기준으로 보완
+
+        // 1. 원본 GPT에서 day-order -> place 매핑
+        Map<String, JsonNode> gptDayOrderMap = new HashMap<>();
         
-        if (filtered.isEmpty()) {
-        	// 만약 필터링 결과가 없으면, gptArray 첫 번째 장소 기준으로 보완
-            if (gptArray.size() > 0) {
-                JsonNode first = gptArray.get(0);
-                String region = normalizeRegionName(first.get("region").asText());
-                String ward = first.get("ward").asText();
-                return fillWithDbPlaces(filtered, gptCount, region, ward);
-            } else {
-                return filtered;
-            }
+        for (JsonNode place : gptArray) {
+            String key = place.get("day").asInt() + "-" + place.get("order").asInt();
+            gptDayOrderMap.put(key, place);
         }
 
-        // 2. region, ward 정보 얻기 (첫 장소 기준)
-        // 여러 동/지역 혼합일 경우 간단히 전체 지역/동 기준으로 보완할 수도 있음
-        // 여기서는 첫 장소의 지역, 동 기준으로 채움
-        String region = filtered.get(0).get("region").asText();
-        String ward = filtered.get(0).get("ward").asText();
+        // 2. 필터링된 결과에서 있는 day-order 확인
+        Set<String> existingKeys = filtered.stream()
+                .map(p -> p.get("day").asInt() + "-" + p.get("order").asInt())
+                .collect(Collectors.toSet());
 
-        return fillWithDbPlaces(filtered, gptCount, region, ward);
+        // 3. 누락된 자리 목록 수집
+        List<String> missingKeys = new ArrayList<>();
+        List<JsonNode> missingGptPlaces = new ArrayList<>();
+        for (Map.Entry<String, JsonNode> entry : gptDayOrderMap.entrySet()) {
+            if (!existingKeys.contains(entry.getKey())) {
+                missingKeys.add(entry.getKey());
+                missingGptPlaces.add(entry.getValue());
+            }
+        }
+        
+        
+        // region/ward 기반으로 누락된 위치 보완
+        List<JsonNode> dbFilled = new ArrayList<>();
+        
+        if (!missingGptPlaces.isEmpty()) {
+            String region = normalizeRegionName(missingGptPlaces.get(0).get("region").asText());
+            String ward = missingGptPlaces.get(0).get("ward").asText();
+
+            // ✅ 누락된 자리만큼 DB에서 보완
+            dbFilled = fillWithDbPlacesOnly(
+                missingKeys,              // 💡 누락된 자리만
+                region,
+                ward,
+                themeIds
+            );
+
+            // 💡 보완된 DB 장소를 누락된 GPT 자리의 day/order에 정확히 맞춰줌
+            for (int i = 0; i < dbFilled.size() && i < missingGptPlaces.size(); i++) {
+                ObjectNode filled = (ObjectNode) dbFilled.get(i);
+                JsonNode original = missingGptPlaces.get(i);
+                filled.put("day", original.get("day").asInt());
+                filled.put("order", original.get("order").asInt());
+            }
+        }
+        
+        
+        // ✅ 최종 합치기 (기존 유지 + 보완)
+        List<JsonNode> finalList = new ArrayList<>(filtered);
+        finalList.addAll(dbFilled);
+
+        // 중복 제거 (같은 day-order는 하나만)
+        Map<String, JsonNode> uniqueMap = new LinkedHashMap<>();
+        for (JsonNode place : finalList) {
+            String key = place.get("day").asInt() + "-" + place.get("order").asInt();
+            uniqueMap.put(key, place);
+        }
+
+        List<JsonNode> dedupedList = new ArrayList<>(uniqueMap.values());
+        dedupedList.sort(Comparator
+        	    .comparingInt(n -> ((JsonNode) n).get("day").asInt())
+        	    .thenComparingInt(n -> ((JsonNode) n).get("order").asInt()));
+        
+        return dedupedList;
     }
 	
 }
