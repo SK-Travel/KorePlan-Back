@@ -1,6 +1,7 @@
 package com.koreplan.service.detail;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.koreplan.dto.ApiResponseDto;
 import com.koreplan.dto.detail.*;
 
 import lombok.RequiredArgsConstructor;

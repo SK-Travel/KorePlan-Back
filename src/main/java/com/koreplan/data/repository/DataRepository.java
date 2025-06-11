@@ -1,11 +1,11 @@
 package com.koreplan.data.repository;
 
 import java.util.List;
-<<<<<<< HEAD
+
 import java.util.Set;
-=======
+
 import java.util.Optional;
->>>>>>> d074815604e6544099fdbdca62238c304f178cc9
+
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
