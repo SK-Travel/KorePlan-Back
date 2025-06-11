@@ -2,7 +2,9 @@ package com.koreplan.openAi;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,7 +14,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.koreplan.entity.theme.ThemeEntity;
 import com.koreplan.openAi.service.OpenAiService;
+import com.koreplan.repository.theme.ThemeRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -23,6 +27,9 @@ public class OpenAiRestController {
 	
 	private final OpenAiService openAiService;
     private final ObjectMapper mapper = new ObjectMapper();
+    
+    @Autowired
+    private ThemeRepository themeRepository;
 	
     /**
      * GPT에 질문을 보내고,
@@ -31,7 +38,25 @@ public class OpenAiRestController {
 	@PostMapping("/ask")
     public ResponseEntity<?> askToGpt(@RequestBody Map<String, Object> request) {
         try {
+        	
+            // 필수값 검증
+            if (!request.containsKey("preferences")) {
+                return ResponseEntity.badRequest().body("preferences 값이 누락되었습니다.");
+            }
 
+            // preferences는 쉼표로 구분된 문자열 (예: "관광지, 문화시설")
+            String preferencesStr = request.get("preferences").toString();
+            String[] themeNames = preferencesStr.split("\\s*,\\s*"); // 공백 제거 후 분할
+
+            // themeName들로 ThemeEntity의 contentTypeId 리스트 가져오기
+            List<Integer> themeIds = themeRepository.findByThemeNameIn(List.of(themeNames)).stream()
+                .map(ThemeEntity::getContentTypeId)
+                .collect(Collectors.toList());
+            
+            if (themeIds.isEmpty()) {
+                return ResponseEntity.badRequest().body("유효한 테마가 없습니다: " + preferencesStr);
+            }
+            
             // 요청 맵을 JSON 문자열로 변환
             String jsonInput = mapper.writeValueAsString(request);
 
@@ -52,7 +77,7 @@ public class OpenAiRestController {
             int gptCount = gptJsonArray.size();
             
             // GPT 추천장소 DB 필터링 + 부족하면 보완까지 한번에
-            List<JsonNode> finalPlaces = openAiService.getFilteredAndFilledPlaces(gptJsonArray, gptCount);
+            List<JsonNode> finalPlaces = openAiService.getFilteredAndFilledPlaces(gptJsonArray, gptCount, themeIds);
             
             return ResponseEntity.ok(finalPlaces);
         } catch (Exception e) {

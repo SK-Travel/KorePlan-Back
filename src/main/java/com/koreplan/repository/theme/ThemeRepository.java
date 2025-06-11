@@ -20,5 +20,10 @@ public interface ThemeRepository extends JpaRepository<ThemeEntity, Integer> {
     
     // contentTypeId로 존재 여부 확인
     boolean existsByContentTypeId(Integer contentTypeId);
-	
+    
+    // contentTypeId로 데이터 불러오기
+    Optional<ThemeEntity> findByContentTypeId(Integer contentTypeId);
+    
+ // ThemeName들로 ThemeEntity 목록 찾기
+    List<ThemeEntity> findByThemeNameIn(List<String> themeNames);
 }
