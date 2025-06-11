@@ -1,4 +1,4 @@
-package com.koreplan.dto.detail;
+package com.koreplan.dto;
 
 import java.util.List;
 import lombok.Data;
