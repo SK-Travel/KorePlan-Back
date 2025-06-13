@@ -161,7 +161,7 @@ public class UserRestController {
     	// 유저가 있을 때, 비밀번호 일치 시 
     	if (isPasswordMatch) {
 			// 정보 저장 session에
-			session.setAttribute("userId", savedUser.getLoginId());
+			session.setAttribute("userId", savedUser.getId());
 			session.setAttribute("name", savedUser.getName());
 			
 			result.put("code", 200);

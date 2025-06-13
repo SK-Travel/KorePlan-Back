@@ -38,6 +38,7 @@ public class OpenAiRestController {
 	@PostMapping("/ask")
     public ResponseEntity<?> askToGpt(@RequestBody Map<String, Object> request) {
         try {
+        	long start = System.currentTimeMillis();
         	
             // 필수값 검증
             if (!request.containsKey("preferences")) {
@@ -48,10 +49,13 @@ public class OpenAiRestController {
             String preferencesStr = request.get("preferences").toString();
             String[] themeNames = preferencesStr.split("\\s*,\\s*"); // 공백 제거 후 분할
 
+            long beforeThemeQuery = System.currentTimeMillis();
             // themeName들로 ThemeEntity의 contentTypeId 리스트 가져오기
             List<Integer> themeIds = themeRepository.findByThemeNameIn(List.of(themeNames)).stream()
                 .map(ThemeEntity::getContentTypeId)
                 .collect(Collectors.toList());
+            long afterThemeQuery = System.currentTimeMillis();
+            System.out.println("Theme 쿼리 소요 시간: " + (afterThemeQuery - beforeThemeQuery) + "ms");
             
             if (themeIds.isEmpty()) {
                 return ResponseEntity.badRequest().body("유효한 테마가 없습니다: " + preferencesStr);
@@ -61,7 +65,11 @@ public class OpenAiRestController {
             String jsonInput = mapper.writeValueAsString(request);
 
             // OpenAiService를 통해 GPT 호출
+            long beforeGptCall = System.currentTimeMillis();
             String gptResponse = openAiService.chatWithGpt(jsonInput);
+            long afterGptCall = System.currentTimeMillis();
+            System.out.println("GPT 호출 소요 시간: " + (afterGptCall - beforeGptCall) + "ms");
+
 
             // GPT 응답 JSON 파싱
             JsonNode gptJsonArray = mapper.readTree(gptResponse);
@@ -72,12 +80,17 @@ public class OpenAiRestController {
                 		.body("GPT 응답이 배열이 아닙니다: " + gptResponse);
             }
             
-
             // GPT가 추천해준 갯수대로
             int gptCount = gptJsonArray.size();
             
             // GPT 추천장소 DB 필터링 + 부족하면 보완까지 한번에
+            long beforeFilter = System.currentTimeMillis();
             List<JsonNode> finalPlaces = openAiService.getFilteredAndFilledPlaces(gptJsonArray, gptCount, themeIds);
+            long afterFilter = System.currentTimeMillis();
+            System.out.println("필터링 및 보완 소요 시간: " + (afterFilter - beforeFilter) + "ms");
+            
+            long end = System.currentTimeMillis();
+            System.out.println("전체 처리 시간: " + (end - start) + "ms");
             
             return ResponseEntity.ok(finalPlaces);
         } catch (Exception e) {
