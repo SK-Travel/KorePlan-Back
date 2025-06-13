@@ -108,7 +108,10 @@ public class DetailInfoService {
                 return objectMapper.readValue(responseBody, 
                     objectMapper.getTypeFactory().constructParametricType(
                         ApiResponseDto.class, CultureInfoDto.class));
-                
+            case "15": //축제
+            	return objectMapper.readValue(responseBody, 
+                        objectMapper.getTypeFactory().constructParametricType(
+                            ApiResponseDto.class, FestivalInfoDto.class));
             case "28": // 레포츠
                 return objectMapper.readValue(responseBody, 
                     objectMapper.getTypeFactory().constructParametricType(
@@ -145,6 +148,10 @@ public class DetailInfoService {
     
     public ResponseEntity<ApiResponseDto<CultureInfoDto>> getCultureInfo(String contentId) throws Exception {
         ResponseEntity<Object> response = getDetailIntro(contentId, "14");
+        return ResponseEntity.ok((ApiResponseDto<CultureInfoDto>) response.getBody());
+    }
+    public ResponseEntity<ApiResponseDto<CultureInfoDto>> getFestivalInfo(String contentId) throws Exception {
+        ResponseEntity<Object> response = getDetailIntro(contentId, "15");
         return ResponseEntity.ok((ApiResponseDto<CultureInfoDto>) response.getBody());
     }
     
