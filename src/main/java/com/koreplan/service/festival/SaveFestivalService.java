@@ -403,6 +403,7 @@ public class SaveFestivalService {
 	    entity.setEventStartDate(start);
 	    entity.setEventEndDate(end);
 	    
+	    entity.setHomepage(last.getHomepage());
 	    entity.setAddr1(last.getAddr1());
 	    entity.setAddr2(last.getAddr2());
 	    entity.setFirstimage(last.getFirstimage());
@@ -447,7 +448,7 @@ public class SaveFestivalService {
 	    entity.setWardCodeEntity(wardEntity);
 	}
 	
-	// @PostConstruct  // 주석 처리 - 이미 데이터가 들어있음
+	//@PostConstruct  // 주석 처리 - 이미 데이터가 들어있음
 	public void init() {
 	    try {
 	        log.info("전체 축제 데이터 초기화를 시작합니다... (서비스키 2개 교대 사용)");
