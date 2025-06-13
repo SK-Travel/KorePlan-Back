@@ -1,12 +1,11 @@
 package com.koreplan.controller.festival;
 
-import java.time.LocalDate;
 import java.util.List;
 
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,7 +13,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.koreplan.dto.festival.FestivalResponseDto;
 import com.koreplan.entity.festival.FestivalEntity;
 import com.koreplan.service.festival.SearchFestivalService;
+import com.koreplan.service.festival.UpdateFestivalService;
 
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -25,335 +26,122 @@ import lombok.extern.slf4j.Slf4j;
 public class SearchFestivalController {
     
     private final SearchFestivalService searchFestivalService;
-
+    private final UpdateFestivalService updateFestivalService;
     /**
-     * 1. 전체 축제 조회
-     * GET /api/festival/all
+     * 통합 축제 조회 API - 모든 필터링 조합 지원
+     * GET /api/festival/search?region={지역}&category={카테고리}&status={상태}&month={월}
+     * 
+     * 예시:
+     * - 전체: /api/festival/search
+     * - 지역별: /api/festival/search?region=서울특별시
+     * - 카테고리별: /api/festival/search?category=축제
+     * - 진행중: /api/festival/search?status=진행중
+     * - 진행예정: /api/festival/search?status=진행예정
+     * - 특정월: /api/festival/search?month=6
+     * - 조합: /api/festival/search?region=서울특별시&category=축제&status=진행중
      */
-    @GetMapping("/all")
-    public ResponseEntity<List<FestivalResponseDto>> getAllFestivals() {
-        try {
-            List<FestivalEntity> festivals = searchFestivalService.getFestivalByTwoOpt("", "");
-            List<FestivalResponseDto> response = festivals.stream()
-                .map(FestivalResponseDto::from)
-                .toList();
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("전체 축제 조회 실패", e);
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    /**
-     * 2. 카테고리별 축제 조회 (축제/공연/행사)
-     * GET /api/festival/category/{categoryName}
-     */
-    @GetMapping("/category/{categoryName}")
-    public ResponseEntity<List<FestivalResponseDto>> getFestivalsByCategory(
-            @PathVariable String categoryName) {
-        try {
-            List<FestivalEntity> festivals = searchFestivalService.getFestivalByC2Code(categoryName);
-            List<FestivalResponseDto> response = festivals.stream()
-                .map(FestivalResponseDto::from)
-                .toList();
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("카테고리별 축제 조회 실패: {}", categoryName, e);
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    /**
-     * 3. 지역별 축제 조회
-     * GET /api/festival/region/{regionName}
-     */
-    @GetMapping("/region/{regionName}")
-    public ResponseEntity<List<FestivalResponseDto>> getFestivalsByRegion(
-            @PathVariable String regionName) {
-        try {
-            List<FestivalEntity> festivals = searchFestivalService.getFestivalByRegion(regionName);
-            List<FestivalResponseDto> response = festivals.stream()
-                .map(FestivalResponseDto::from)
-                .toList();
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("지역별 축제 조회 실패: {}", regionName, e);
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    /**
-     * 4. 이중 필터링 (지역 + 카테고리)
-     * GET /api/festival/filter?region={regionName}&category={categoryName}
-     */
-    @GetMapping("/filter")
-    public ResponseEntity<List<FestivalResponseDto>> getFestivalsByFilter(
+    @GetMapping("/search")
+    @Operation(summary = "통합 축제 조회 API", description = "축제 페이지에서 모든 경우의 수에 대한 조회")
+    public ResponseEntity<List<FestivalResponseDto>> searchFestivals(
             @RequestParam(required = false, defaultValue = "") String region,
-            @RequestParam(required = false, defaultValue = "") String category) {
+            @RequestParam(required = false, defaultValue = "") String category,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Integer month) {
         try {
-            List<FestivalEntity> festivals = searchFestivalService.getFestivalByTwoOpt(region, category);
-            List<FestivalResponseDto> response = festivals.stream()
-                .map(FestivalResponseDto::from)
-                .toList();
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("이중 필터링 조회 실패: region={}, category={}", region, category, e);
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    /**
-     * 5. 현재 진행중인 축제 조회
-     * GET /api/festival/ongoing
-     */
-    @GetMapping("/ongoing")
-    public ResponseEntity<List<FestivalResponseDto>> getOngoingFestivals() {
-        try {
-            List<FestivalEntity> allFestivals = searchFestivalService.getFestivalByTwoOpt("", "");
-            List<FestivalEntity> ongoingFestivals = searchFestivalService.getFestivalGoing(allFestivals);
-            List<FestivalResponseDto> response = ongoingFestivals.stream()
-                .map(FestivalResponseDto::from)
-                .toList();
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("진행중인 축제 조회 실패", e);
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    /**
-     * 6. 진행 예정인 축제 조회
-     * GET /api/festival/upcoming
-     */
-    @GetMapping("/upcoming")
-    public ResponseEntity<List<FestivalResponseDto>> getUpcomingFestivals() {
-        try {
-            List<FestivalEntity> allFestivals = searchFestivalService.getFestivalByTwoOpt("", "");
-            List<FestivalEntity> upcomingFestivals = searchFestivalService.getFestivalAfter(allFestivals);
-            List<FestivalResponseDto> response = upcomingFestivals.stream()
-                .map(FestivalResponseDto::from)
-                .toList();
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("진행 예정 축제 조회 실패", e);
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    /**
-     * 7. 필터 + 상태별 조회 (진행중)
-     * GET /api/festival/ongoing/filter?region={regionName}&category={categoryName}
-     */
-    @GetMapping("/ongoing/filter")
-    public ResponseEntity<List<FestivalResponseDto>> getOngoingFestivalsByFilter(
-            @RequestParam(required = false, defaultValue = "") String region,
-            @RequestParam(required = false, defaultValue = "") String category) {
-        try {
-            List<FestivalEntity> festivals = searchFestivalService.getOngoingFestivalsByFilter(region, category);
-            List<FestivalResponseDto> response = festivals.stream()
-                .map(FestivalResponseDto::from)
-                .toList();
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("진행중 축제 필터링 조회 실패: region={}, category={}", region, category, e);
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    /**
-     * 8. 필터 + 상태별 조회 (진행예정)
-     * GET /api/festival/upcoming/filter?region={regionName}&category={categoryName}
-     */
-    @GetMapping("/upcoming/filter")
-    public ResponseEntity<List<FestivalResponseDto>> getUpcomingFestivalsByFilter(
-            @RequestParam(required = false, defaultValue = "") String region,
-            @RequestParam(required = false, defaultValue = "") String category) {
-        try {
-            List<FestivalEntity> festivals = searchFestivalService.getUpcomingFestivalsByFilter(region, category);
-            List<FestivalResponseDto> response = festivals.stream()
-                .map(FestivalResponseDto::from)
-                .toList();
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("진행 예정 축제 필터링 조회 실패: region={}, category={}", region, category, e);
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    /**
-     * 9. 특정 날짜의 축제 조회
-     * GET /api/festival/date/{date}
-     * 날짜 형식: yyyy-MM-dd (예: 2025-03-15)
-     */
-    @GetMapping("/date/{date}")
-    public ResponseEntity<List<FestivalResponseDto>> getFestivalsByDate(
-            @PathVariable @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
-        try {
-            List<FestivalEntity> festivals = searchFestivalService.getFestivalByDate(date);
-            List<FestivalResponseDto> response = festivals.stream()
-                .map(FestivalResponseDto::from)
-                .toList();
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("특정 날짜 축제 조회 실패: {}", date, e);
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    /**
-     * 10. 특정 월의 축제 조회 (2025년 한정)
-     * GET /api/festival/month/{month}
-     * 월: 1-12
-     */
-    @GetMapping("/month/{month}")
-    public ResponseEntity<List<FestivalResponseDto>> getFestivalsByMonth(
-            @PathVariable int month) {
-        try {
-            if (month < 1 || month > 12) {
+            log.info("🔍 통합 검색 요청: region={}, category={}, status={}, month={}", 
+                region, category, status, month);
+            
+            // 월 유효성 검사
+            if (month != null && (month < 1 || month > 12)) {
+                log.warn("잘못된 월 파라미터: {}", month);
                 return ResponseEntity.badRequest().build();
             }
-            List<FestivalEntity> festivals = searchFestivalService.getFestivalByMonth(month);
+            
+            // 빈 문자열을 null로 변환
+            String finalRegion = (region != null && !region.trim().isEmpty() && !"전국".equals(region.trim())) ? region.trim() : null;
+            String finalCategory = (category != null && !category.trim().isEmpty() && !"전체".equals(category.trim())) ? category.trim() : null;
+            String finalStatus = (status != null && !status.trim().isEmpty()) ? status.trim() : null;
+            
+            log.info("🔍 정제된 파라미터: region={}, category={}, status={}, month={}", 
+                finalRegion, finalCategory, finalStatus, month);
+            
+            List<FestivalEntity> festivals = searchFestivalService.getComplexFilteredFestivals(
+                finalRegion, finalCategory, finalStatus, month);
+                
             List<FestivalResponseDto> response = festivals.stream()
                 .map(FestivalResponseDto::from)
                 .toList();
+            
+            log.info("🎪 검색 결과: {}개 축제 조회됨", response.size());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("특정 월 축제 조회 실패: {}", month, e);
+            log.error("축제 검색 실패: region={}, category={}, status={}, month={}", 
+                region, category, status, month, e);
             return ResponseEntity.internalServerError().build();
         }
     }
 
     /**
-     * 11. 현재 월의 축제 조회
-     * GET /api/festival/this-month
+     * 키워드 검색 (프론트엔드에서 실시간 검색에 사용)
+     * GET /api/festival/keyword?q={검색어}
      */
-    @GetMapping("/this-month")
-    public ResponseEntity<List<FestivalResponseDto>> getFestivalsThisMonth() {
+    @GetMapping("/keyword")
+    @Operation(summary = "축제 이름 검색", description = "축제 이름으로 조회합니다.")
+    public ResponseEntity<List<FestivalResponseDto>> searchByKeyword(
+            @RequestParam String q) {
         try {
-            List<FestivalEntity> festivals = searchFestivalService.getFestivalThisMonth();
+            if (q == null || q.trim().isEmpty()) {
+                return ResponseEntity.badRequest().build();
+            }
+            
+            log.info("🔎 키워드 검색 요청: q={}", q);
+            List<FestivalEntity> festivals = searchFestivalService.searchFestivalsByKeyword(q);
             List<FestivalResponseDto> response = festivals.stream()
                 .map(FestivalResponseDto::from)
                 .toList();
+            
+            log.info("🔎 키워드 검색 결과: {}개 축제 조회됨", response.size());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("현재 월 축제 조회 실패", e);
+            log.error("키워드 검색 실패: {}", q, e);
             return ResponseEntity.internalServerError().build();
         }
     }
 
     /**
-     * 12. 인기 축제 TOP 5
+     * 인기 축제 조회 (메인페이지용 - 기본 5개)
      * GET /api/festival/popular
      */
     @GetMapping("/popular")
+    @Operation(summary = "축제 Top5 조회 (메인페이지용)", description = "조회수 Top5 축제/공연/행사 조회")
     public ResponseEntity<List<FestivalResponseDto>> getPopularFestivals() {
         try {
+            log.info("🏆 인기 축제 조회 요청 (메인페이지용)");
             List<FestivalEntity> festivals = searchFestivalService.getPopularFestivals();
             List<FestivalResponseDto> response = festivals.stream()
                 .map(FestivalResponseDto::from)
                 .toList();
+            log.info("🏆 인기 축제 조회 완료 (메인페이지용): {}개", response.size());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("인기 축제 조회 실패", e);
+            log.error("인기 축제 조회 실패 (메인페이지용)", e);
             return ResponseEntity.internalServerError().build();
+        }
+    }
+    @PostMapping("/{contentId}/view")
+    public ResponseEntity<String> increaseViewCount(@PathVariable String contentId) {
+        try {
+            log.info("축제 조회수 증가 API 호출 - contentId: {}", contentId);
+            
+            updateFestivalService.increaseViewCount(contentId);
+            
+            return ResponseEntity.ok("조회수가 증가되었습니다.");
+            
+        } catch (Exception e) {
+            log.error("조회수 증가 실패 - contentId: {}", contentId, e);
+            return ResponseEntity.badRequest().body("조회수 증가에 실패했습니다: " + e.getMessage());
         }
     }
 
-    /**
-     * 13. 커스텀 개수 인기 축제
-     * GET /api/festival/popular/{limit}
-     */
-    @GetMapping("/popular/{limit}")
-    public ResponseEntity<List<FestivalResponseDto>> getPopularFestivals(
-            @PathVariable int limit) {
-        try {
-            if (limit < 1 || limit > 100) {
-                return ResponseEntity.badRequest().build();
-            }
-            List<FestivalEntity> festivals = searchFestivalService.getPopularFestivals(limit);
-            List<FestivalResponseDto> response = festivals.stream()
-                .map(FestivalResponseDto::from)
-                .toList();
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("커스텀 인기 축제 조회 실패: limit={}", limit, e);
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    /**
-     * 14. 키워드 검색
-     * GET /api/festival/search?keyword={keyword}
-     */
-    @GetMapping("/search")
-    public ResponseEntity<List<FestivalResponseDto>> searchFestivals(
-            @RequestParam String keyword) {
-        try {
-            if (keyword == null || keyword.trim().isEmpty()) {
-                return ResponseEntity.badRequest().build();
-            }
-            List<FestivalEntity> festivals = searchFestivalService.searchFestivalsByKeyword(keyword);
-            List<FestivalResponseDto> response = festivals.stream()
-                .map(FestivalResponseDto::from)
-                .toList();
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("키워드 검색 실패: {}", keyword, e);
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    /**
-     * 15. 축제 상세 조회 (상세 정보 포함)
-     * GET /api/festival/{contentId}
-     */
-    @GetMapping("/{contentId}")
-    public ResponseEntity<FestivalResponseDto> getFestivalDetail(@PathVariable String contentId) {
-        try {
-            // contentId로 축제 찾기 (Repository에 메서드 추가 필요)
-            // 임시로 전체에서 찾기
-            List<FestivalEntity> allFestivals = searchFestivalService.getFestivalByTwoOpt("", "");
-            FestivalEntity festival = allFestivals.stream()
-                .filter(f -> f.getContentId().equals(contentId))
-                .findFirst()
-                .orElse(null);
-            
-            if (festival == null) {
-                return ResponseEntity.notFound().build();
-            }
-            
-            FestivalResponseDto response = FestivalResponseDto.from(festival);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("축제 상세 조회 실패: contentId={}", contentId, e);
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    /**
-     * 16. 축제 상태만 확인
-     * GET /api/festival/{contentId}/status
-     */
-    @GetMapping("/{contentId}/status")
-    public ResponseEntity<String> getFestivalStatus(@PathVariable String contentId) {
-        try {
-            // contentId로 축제 찾기 (Repository에 메서드 추가 필요)
-            // 임시로 전체에서 찾기
-            List<FestivalEntity> allFestivals = searchFestivalService.getFestivalByTwoOpt("", "");
-            FestivalEntity festival = allFestivals.stream()
-                .filter(f -> f.getContentId().equals(contentId))
-                .findFirst()
-                .orElse(null);
-            
-            if (festival == null) {
-                return ResponseEntity.notFound().build();
-            }
-            
-            String status = searchFestivalService.getFestivalStatusString(festival);
-            return ResponseEntity.ok(status);
-        } catch (Exception e) {
-            log.error("축제 상태 조회 실패: contentId={}", contentId, e);
-            return ResponseEntity.internalServerError().build();
-        }
-    }
+    
 }

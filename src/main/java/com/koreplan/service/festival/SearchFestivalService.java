@@ -85,20 +85,31 @@ public class SearchFestivalService {
     public List<FestivalEntity> getFestivalByTwoOpt(String region, String c2Name) {
         List<FestivalEntity> results;
         
+        // null 안전 체크
+        boolean regionEmpty = (region == null || region.isBlank());
+        boolean categoryEmpty = (c2Name == null || c2Name.isBlank());
+        
+        log.info("🔧 getFestivalByTwoOpt: region='{}' (empty={}), c2Name='{}' (empty={})", 
+            region, regionEmpty, c2Name, categoryEmpty);
+        
         // 둘 다 비어있으면 전체 조회
-        if (region == null || region.isBlank() || c2Name == null || c2Name.isBlank()) {
+        if (regionEmpty && categoryEmpty) {
+            log.info("📊 전체 축제 조회");
             results = festivalRepository.findAll();
         }
-        // 카테고리만 비어있는 경우
-        else if (c2Name.isBlank()) {
+        // 카테고리만 비어있는 경우 (지역만 있음)
+        else if (categoryEmpty && !regionEmpty) {
+            log.info("🗺️ 지역별 조회: {}", region);
             results = getFestivalByRegion(region);
         }
-        // 지역만 비어있는 경우
-        else if (region.isBlank()) {
+        // 지역만 비어있는 경우 (카테고리만 있음)
+        else if (regionEmpty && !categoryEmpty) {
+            log.info("🎭 카테고리별 조회: {}", c2Name);
             results = getFestivalByC2Code(c2Name);
         }
         // 둘 다 있는 경우
         else {
+            log.info("🎯 지역+카테고리 조회: region={}, category={}", region, c2Name);
             try {
                 results = new ArrayList<>(getFestivalByRegion(region));
                 String cat = categoryRepository.findByC2Name(c2Name).getFirst().getC2Code();
@@ -119,14 +130,19 @@ public class SearchFestivalService {
         
         // 연관 엔티티 미리 로딩
         for (FestivalEntity festival : results) {
-            if (festival.getRegionCodeEntity() != null) {
-                festival.getRegionCodeEntity().getName();
-            }
-            if (festival.getWardCodeEntity() != null) {
-                festival.getWardCodeEntity().getName();
+            try {
+                if (festival.getRegionCodeEntity() != null) {
+                    festival.getRegionCodeEntity().getName();
+                }
+                if (festival.getWardCodeEntity() != null) {
+                    festival.getWardCodeEntity().getName();
+                }
+            } catch (Exception e) {
+                log.warn("연관 엔티티 로딩 실패: contentId={}", festival.getContentId(), e);
             }
         }
         
+        log.info("✅ getFestivalByTwoOpt 결과: {}개", results.size());
         return results;
     }
 
@@ -137,7 +153,7 @@ public class SearchFestivalService {
     public List<FestivalEntity> getFestivalAfter(List<FestivalEntity> pre) {
         List<FestivalEntity> results = new ArrayList<>();
         for (FestivalEntity fes : pre) {
-            if (fes.getEventStartDate().isAfter(LocalDate.now())) {
+            if (fes.isUpcoming()) {
                 results.add(fes);
             }
         }
@@ -150,74 +166,26 @@ public class SearchFestivalService {
     @Transactional(readOnly = true)
     public List<FestivalEntity> getFestivalGoing(List<FestivalEntity> pre) {
         List<FestivalEntity> results = new ArrayList<>();
-        LocalDate today = LocalDate.now();
-        
         for (FestivalEntity fes : pre) {
-            LocalDate startDate = fes.getEventStartDate();
-            LocalDate endDate = fes.getEventEndDate();
-            
-            if ((startDate.isBefore(today) || startDate.isEqual(today)) && 
-                (endDate.isAfter(today) || endDate.isEqual(today))) {
-                results.add(fes);
+            if(fes.isOngoing()) {
+            	results.add(fes);
             }
         }
         return results;
     }
 
-    /**
-     * 5. 특정 날짜에 진행중인 축제 가져오기
-     */
-    @Transactional(readOnly = true)
-    public List<FestivalEntity> getFestivalByDate(LocalDate date) {
-        List<FestivalEntity> allFestivals = festivalRepository.findAll();
-        List<FestivalEntity> results = new ArrayList<>();
-        
-        for (FestivalEntity fes : allFestivals) {
-            LocalDate start = fes.getEventStartDate();
-            LocalDate end = fes.getEventEndDate();
-            
-            // 매개변수로 받은 date가 start와 end 사이에 존재하는지 확인
-            if ((start.isBefore(date) || start.isEqual(date)) && 
-                (end.isAfter(date) || end.isEqual(date))) {
-                results.add(fes);
-            }
-        }
-        
-        // 연관 엔티티 미리 로딩
-        for (FestivalEntity festival : results) {
-            if (festival.getRegionCodeEntity() != null) {
-                festival.getRegionCodeEntity().getName();
-            }
-            if (festival.getWardCodeEntity() != null) {
-                festival.getWardCodeEntity().getName();
-            }
-        }
-        
-        return results;
-    }
+    
 
     /**
      * 6. 특정 월에 해당하는 축제 가져오기 (2025년 한정)
      */
     @Transactional(readOnly = true)
-    public List<FestivalEntity> getFestivalByMonth(int month) {
-        int currentYear = 2025; // 고정값
-        YearMonth yearMonth = YearMonth.of(currentYear, month);
-        LocalDate startOfMonth = yearMonth.atDay(1);
-        LocalDate endOfMonth = yearMonth.atEndOfMonth();
+    public List<FestivalEntity> getFestivalByMonth(int month , List<FestivalEntity> pre) {
+        //List<FestivalEntity> allFestivals = festivalRepository.findAll();
         
-        List<FestivalEntity> allFestivals = festivalRepository.findAll();
-        List<FestivalEntity> results = new ArrayList<>();
-        
-        for (FestivalEntity fes : allFestivals) {
-            LocalDate festivalStart = fes.getEventStartDate();
-            LocalDate festivalEnd = fes.getEventEndDate();
-            
-            // 축제 기간이 해당 월과 겹치는지 확인
-            if (!(festivalEnd.isBefore(startOfMonth) || festivalStart.isAfter(endOfMonth))) {
-                results.add(fes);
-            }
-        }
+        List<FestivalEntity> results = pre.stream()
+            .filter(festival -> festival.isRunningInMonth(month))
+            .toList();
         
         // 연관 엔티티 미리 로딩
         for (FestivalEntity festival : results) {
@@ -231,45 +199,28 @@ public class SearchFestivalService {
         
         return results;
     }
-
-    /**
-     * 현재 월의 축제 가져오기 (자동으로 현재 년도/월 사용)
-     */
-    @Transactional(readOnly = true)
-    public List<FestivalEntity> getFestivalThisMonth() {
-        LocalDate today = LocalDate.now();
-        return getFestivalByMonth(today.getMonthValue());
-    }
-
-    /**
-     * 진행 상태 확인 유틸리티 메서드들
-     */
-    
-    // 현재 진행중인지 여부 확인
-    public boolean getIsOngoing(FestivalEntity festival) {
-        LocalDate today = LocalDate.now();
-        LocalDate start = festival.getEventStartDate();
-        LocalDate end = festival.getEventEndDate();
+    //총합 필터링 모든 경우의 수 필터링 가능
+    public List<FestivalEntity> getComplexFilteredFestivals(String regionName, String c2Name, String status, Integer month) {
+        List<FestivalEntity> filtered = getFestivalByTwoOpt(regionName, c2Name);
         
-        return (start.isBefore(today) || start.isEqual(today)) && 
-               (end.isAfter(today) || end.isEqual(today));
+        if ("진행중".equals(status)) {
+            return getFestivalGoing(filtered);      // 기존 로직과 동일
+        } else if ("진행예정".equals(status)) {
+            return getFestivalAfter(filtered);      // 기존 로직과 동일
+        } else if (month != null) {
+            return getFestivalByMonth(month, filtered);
+        }
+        
+        return filtered;
     }
-
-    // 진행 예정인지 여부 확인
-    public boolean getIsUpcoming(FestivalEntity festival) {
-        return festival.getEventStartDate().isAfter(LocalDate.now());
-    }
-
-    // 종료되었는지 여부 확인
-    public boolean getIsEnded(FestivalEntity festival) {
-        return festival.getEventEndDate().isBefore(LocalDate.now());
-    }
+    
+ 
 
     // 축제 상태 문자열로 반환
     public String getFestivalStatusString(FestivalEntity festival) {
-        if (getIsUpcoming(festival)) {
+        if (festival.isUpcoming()) {
             return "진행예정";
-        } else if (getIsOngoing(festival)) {
+        } else if (festival.isOngoing()) {
             return "진행중";
         } else {
             return "종료됨";
@@ -286,7 +237,7 @@ public class SearchFestivalService {
         List<FestivalEntity> allFestivals = festivalRepository.findAll();
         List<FestivalEntity> results = allFestivals.stream()
             .sorted((f1, f2) -> Integer.compare(f2.getViewCount(), f1.getViewCount()))
-            .limit(5)
+            .limit(5)//5개에 조정가능
             .toList();
             
         // 연관 엔티티 미리 로딩
@@ -302,28 +253,9 @@ public class SearchFestivalService {
         return results;
     }
     
-    // 커스텀 개수로 인기 축제 조회
-    @Transactional(readOnly = true)
-    public List<FestivalEntity> getPopularFestivals(int limit) {
-        List<FestivalEntity> allFestivals = festivalRepository.findAll();
-        List<FestivalEntity> results = allFestivals.stream()
-            .sorted((f1, f2) -> Integer.compare(f2.getViewCount(), f1.getViewCount()))
-            .limit(limit)
-            .toList();
-            
-        // 연관 엔티티 미리 로딩
-        for (FestivalEntity festival : results) {
-            if (festival.getRegionCodeEntity() != null) {
-                festival.getRegionCodeEntity().getName();
-            }
-            if (festival.getWardCodeEntity() != null) {
-                festival.getWardCodeEntity().getName();
-            }
-        }
-        
-        return results;
-    }
-
+    
+    
+    
     // 키워드로 축제 검색 (제목 기준)
     @Transactional(readOnly = true)
     public List<FestivalEntity> searchFestivalsByKeyword(String keyword) {
@@ -353,19 +285,5 @@ public class SearchFestivalService {
         }
         
         return results;
-    }
-
-    // 지역과 카테고리로 현재 진행 중인 축제만 조회
-    @Transactional(readOnly = true)
-    public List<FestivalEntity> getOngoingFestivalsByFilter(String regionName, String c2Name) {
-        List<FestivalEntity> filtered = getFestivalByTwoOpt(regionName, c2Name);
-        return getFestivalGoing(filtered);
-    }
-
-    // 지역과 카테고리로 진행 예정 축제만 조회
-    @Transactional(readOnly = true)
-    public List<FestivalEntity> getUpcomingFestivalsByFilter(String regionName, String c2Name) {
-        List<FestivalEntity> filtered = getFestivalByTwoOpt(regionName, c2Name);
-        return getFestivalAfter(filtered);
     }
 }

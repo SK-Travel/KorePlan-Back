@@ -1,10 +1,7 @@
 package com.koreplan.entity.festival;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import java.time.YearMonth;
 
 import com.koreplan.area.entity.RegionCodeEntity;
 import com.koreplan.area.entity.WardCodeEntity;
@@ -44,6 +41,8 @@ public class FestivalEntity {
     private LocalDate eventEndDate;
     
     // 5번 API (공통 정보)에서 가져오는 필드들
+    @Column(name="homepage",columnDefinition = "TEXT")
+    private String homepage;
     @Column(name = "title", nullable = false, length = 200)
     private String title;
     
@@ -95,13 +94,28 @@ public class FestivalEntity {
 //    private LocalDateTime updatedAt;
     
     // 축제 상태 확인 유틸리티 메서드들
+    //진행중
     public boolean isOngoing() {
         LocalDate now = LocalDate.now();
         return !now.isBefore(eventStartDate) && !now.isAfter(eventEndDate);
     }
-    
+    //진행예정
     public boolean isUpcoming() {
         LocalDate now = LocalDate.now();
         return now.isBefore(eventStartDate);
+    }
+    //해당 월에 진행중인지 확인하는 메서드
+    
+    public boolean isRunningInMonth(int month) {
+        int currentYear = 2025; // 고정값
+        YearMonth userYearMonth = YearMonth.of(currentYear, month);
+        
+        // 축제 시작일과 종료일에서 년월 추출
+        YearMonth festivalStartYearMonth = YearMonth.from(eventStartDate);
+        YearMonth festivalEndYearMonth = YearMonth.from(eventEndDate);
+        
+        // 사용자 선택 월이 축제 기간(년월 기준) 범위에 포함되는지 확인
+        return !userYearMonth.isBefore(festivalStartYearMonth) && 
+               !userYearMonth.isAfter(festivalEndYearMonth);
     }
 }

@@ -25,7 +25,6 @@ import com.koreplan.dto.festival.FestivalTermDto;
 import com.koreplan.entity.festival.FestivalEntity;
 import com.koreplan.repository.festival.FestivalRepository;
 
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -403,6 +402,7 @@ public class SaveFestivalService {
 	    entity.setEventStartDate(start);
 	    entity.setEventEndDate(end);
 	    
+	    entity.setHomepage(last.getHomepage());
 	    entity.setAddr1(last.getAddr1());
 	    entity.setAddr2(last.getAddr2());
 	    entity.setFirstimage(last.getFirstimage());

@@ -12,6 +12,9 @@ public class FestivalCommonDto {
     @JsonProperty("title")           // 추가 필요
     private String title;
     
+    @JsonProperty("homepage")
+    private String homepage;
+    
     @JsonProperty("firstimage")      // 추가 필요
     private String firstimage;
     

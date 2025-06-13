@@ -44,7 +44,7 @@ public class LikeRestController {
 		Map<String, Object> result = new HashMap<>();
 		
 		// 3. 인증 X
-		if (userId == null) {
+		if (userId == null ) {
 			result.put("code", 401);
 			result.put("error_message", "로그인되지 않았습니다. 로그인 해주세요");
 		} else {
