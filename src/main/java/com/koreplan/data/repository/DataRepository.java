@@ -48,4 +48,8 @@ public interface DataRepository extends JpaRepository<DataEntity,Long> {
     
     //프론트의 detail페이지에서 사용하기 편하도록 contentId로 찾을 수 있게 메서드 추가함.
     Optional<DataEntity> findByContentId(String contentId);
+    //이미지 서비스에서 사용하는 컨텐트아이디가 실재하는지 여부 확인하는 메서드(이미지를 가져올 때 유효한 z컨텐트아이디인가)
+	boolean existsByContentId(String contentId);
+	//여러 컨텐츠아이디로 조회하는 기능
+	List<DataEntity> findByContentIdIn(List<String> contentIds);
 }
