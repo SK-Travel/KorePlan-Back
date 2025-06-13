@@ -31,8 +31,12 @@ public class UsageTracker {
     }
 
     private double calculateCost(int inputTokens, int outputTokens) {
-        double inputCost = inputTokens / 1000.0 * 0.0005;
-        double outputCost = outputTokens / 1000.0 * 0.0015;
+    	// 3.5터보
+//        double inputCost = inputTokens / 1000.0 * 0.0005;
+//        double outputCost = outputTokens / 1000.0 * 0.0015;
+//    	4o
+        double inputCost = inputTokens / 1000.0 * 0.005;
+        double outputCost = outputTokens / 1000.0 * 0.015;
         return inputCost + outputCost;
     }
 

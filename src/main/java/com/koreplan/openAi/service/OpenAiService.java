@@ -1,5 +1,6 @@
 package com.koreplan.openAi.service;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -13,6 +14,10 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -28,7 +33,10 @@ import com.koreplan.data.entity.DataEntity;
 import com.koreplan.data.repository.DataRepository;
 import com.koreplan.openAi.UsageTracker;
 
+import io.netty.channel.ChannelOption;
 import jakarta.annotation.PostConstruct;
+import reactor.core.publisher.Mono;
+import reactor.netty.http.client.HttpClient;
 
 @Service
 public class OpenAiService {
@@ -64,6 +72,13 @@ public class OpenAiService {
 				.baseUrl("https://api.openai.com/v1") // OPEN API 기본 URL
 				.defaultHeader("Authorization", "Bearer " + openaiApiKey)  // 인증용 헤더
 				.defaultHeader("Content-Type", "application/json") // JSON 형식 명시
+		        .clientConnector(
+	                new ReactorClientHttpConnector(
+	                    HttpClient.create()
+	                        .responseTimeout(Duration.ofSeconds(30)) // 최대 30초 응답 제한
+	                        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
+	                )
+	            )
 				.build();
 	}
 	
@@ -86,36 +101,10 @@ public class OpenAiService {
 
             // 2. GPT용 프롬프트 구성
             String gptPrompt = """
-                당신은 여행 플래너입니다.
-                사용자에게 맞는 여행 일정을 추천해 주세요.
-
-                지역: %s
-                여행일 수: %d일
-                동행 유형: %s
-                선호 장소 타입: %s     
-            	조건:
-	            - Day 1 & Day %d는 1~2개의 장소 추천, 나머지 날은 3~4개의 장소만 추천해주세요.
-	            - 하루 일정의 동선은 서로 가까운 장소 위주로 구성해주세요.
-	            - 장소 간 이동 거리가 너무 멀지 않도록 해주세요.
-	            - 효율적인 이동 거리를 구축해주세요.
-	            - 간단한 설명을 포함해주세요.
-	            - 반드시 Day 1부터 Day %d까지 모든 날짜 일정을 포함해주세요.
-
-                아래와 같은 JSON 배열 형식으로 응답하세요:
-                [
-                  {
-                    "day": 1,
-                    "order": 1,
-                    "region": "서울특별시",
-                    "ward": "강남구",
-                    "name": "경복궁",
-                    "lat": 37.579617,
-                    "lng": 126.977041,
-                    "description": "조선시대의 대표 궁궐로 역사적 의미가 깊은 장소입니다."
-                  },
-                  ...
-                ]
-                """.formatted(region, days, companion, preferences, days, days);
+            		당신은 여행 일정 플래너입니다. 다음 조건에 맞는 일정(JSON 배열)만 생성하세요: 지역: %s, 여행일 수: %d일, 동행 유형: %s, 선호 장소: %s
+            		일정 조건: Day 1과 Day %d는 1~2개 장소만 추천, 중간 날짜들은 각 3~4개 장소 추천, 장소 간 이동 거리는 짧게 구성
+            		응답 형식: JSON 배열만 출력하세요. 코드블록(```json 등)은 절대 포함하지 마세요.예시: [{"day": 1, "order": 1, "region": "서울특별시", "ward": "강남구", "name": "경복궁", "lat": 37.579617, "lng": 126.977041}, ...]
+            		""".formatted(region, days, companion, preferences, days);
 
             int estimatedInputTokens = gptPrompt.length() / 4;
             int estimatedOutputTokens = 200;
@@ -126,7 +115,9 @@ public class OpenAiService {
 
             // 3. 안전하게 JSON 생성
             ObjectNode requestNode = mapper.createObjectNode();
-            requestNode.put("model", "gpt-3.5-turbo");
+            requestNode.put("model", "gpt-4o");
+            requestNode.put("max_tokens", 1000); // 토큰 제한 추가
+//            requestNode.put("temperature", 0.7); // 0.0 ~ 2.0 지피티의 창의성 디폴트는 0.7임
 
             ArrayNode messages = mapper.createArrayNode();
             ObjectNode userNode = mapper.createObjectNode();
@@ -149,8 +140,10 @@ public class OpenAiService {
                     .bodyToMono(String.class)
                     .block();
 
+//            System.out.println("최초 대답:" + rawJson);
             // 5. 응답에서 message.content 추출
             JsonNode root = mapper.readTree(rawJson);
+            
             return root.path("choices").get(0).path("message").path("content").asText();
 
         } catch (Exception e) {
@@ -213,19 +206,23 @@ public class OpenAiService {
 
 	        // ✅ 유사한 이름 비교 (공백, 대소문자 무시)
 	        List<DataEntity> candidates = dataRepository.findByRegionCodeEntityAndWardCodeEntityAndThemeIn(regionEntity, wardEntity, themeIds);
-	        boolean exists = candidates.stream().anyMatch(d -> isSimilarName(d.getTitle(), placeName));
-	        if (exists) {
-	        	// day, order 포함하여 그대로 복사
-	            ObjectNode node = mapper.createObjectNode();
-	            node.put("day", place.get("day").asInt());
-	            node.put("order", place.get("order").asInt());
-	            node.put("region", regionName);
-	            node.put("ward", wardName);
-	            node.put("name", placeName);
-	            node.put("description", place.get("description").asText());
-	            node.put("lat", place.get("lat").asDouble());
-	            node.put("lng", place.get("lng").asDouble());
-	            result.add(node);
+	        for (DataEntity d : candidates) { // 반복문으로 변경
+	            if (isSimilarName(d.getTitle(), placeName)) {
+	                // day, order 포함하여 그대로 복사
+	                ObjectNode node = mapper.createObjectNode();
+	                node.put("day", place.get("day").asInt());
+	                node.put("order", place.get("order").asInt());
+	                node.put("region", regionName);
+	                node.put("ward", wardName);
+	                node.put("name", placeName);
+	                node.put("lat", place.get("lat").asDouble());
+	                node.put("lng", place.get("lng").asDouble());
+//	            node.put("description", place.get("description").asText());
+	                node.put("contentId", d.getContentId()); // 🔧 contentId 추가
+	                node.put("firstimage", d.getFirstimage()); // 이미지 추가
+	                result.add(node);
+	                break; // 🔧 매칭되었으므로 반복 종료
+	            }
 	        }
 		}
 		System.out.println("[필터링] GPT 추천 " + gptArray.size() + " → DB 존재 " + result.size());
@@ -272,9 +269,11 @@ public class OpenAiService {
     	            node.put("region", region);
     	            node.put("ward", ward);
     	            node.put("name", data.getTitle());
-    	            node.put("description", "설명 준비 중입니다.");
+//    	            node.put("description", "설명 준비 중입니다.");
     	            node.put("lng", Double.parseDouble(data.getMapx()));
     	            node.put("lat", Double.parseDouble(data.getMapy()));
+    	            node.put("contentId", data.getContentId());
+    	            node.put("firstimage", data.getFirstimage());
     	            result.add(node);
     	            break;
     	        }
