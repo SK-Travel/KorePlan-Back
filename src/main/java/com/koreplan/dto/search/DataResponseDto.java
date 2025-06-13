@@ -1,7 +1,6 @@
 package com.koreplan.dto.search;
 
 import com.koreplan.data.entity.DataEntity;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -34,6 +33,12 @@ public class DataResponseDto {
     private String wardName;
     private Long wardCode;
     
+    // 통계 정보 추가
+    private Long viewCount;     // 조회수
+    private Long likeCount;     // 좋아요 수
+    private Double rating;      // 평점
+    private Long reviewCount;   // 리뷰 수
+    
     // Entity에서 DTO로 변환하는 정적 메서드
     public static DataResponseDto fromEntity(DataEntity entity) {
         return DataResponseDto.builder()
@@ -60,6 +65,44 @@ public class DataResponseDto {
                      entity.getWardCodeEntity().getName() : null)
             .wardCode(entity.getWardCodeEntity() != null ? 
                      entity.getWardCodeEntity().getWardcode() : null)
+            .build();
+    }
+    
+    // 통계 데이터 포함 변환 메서드 추가
+    public static DataResponseDto fromEntityWithStats(DataEntity entity, 
+                                                     Long viewCount, 
+                                                     Long likeCount, 
+                                                     Double rating, 
+                                                     Long reviewCount) {
+        return DataResponseDto.builder()
+            .id(entity.getId())
+            .contentId(entity.getContentId())
+            .addr1(entity.getAddr1())
+            .addr2(entity.getAddr2())
+            .mapx(entity.getMapx())
+            .mapy(entity.getMapy())
+            .title(entity.getTitle())
+            .c1Code(entity.getC1Code())
+            .c2Code(entity.getC2Code())
+            .c3Code(entity.getC3Code())
+            .firstimage(entity.getFirstimage())
+            .firstimage2(entity.getFirstimage2())
+            .tel(entity.getTel())
+            .theme(entity.getTheme())
+            // 연관관계 엔티티에서 정보 추출
+            .regionName(entity.getRegionCodeEntity() != null ? 
+                       entity.getRegionCodeEntity().getName() : null)
+            .regionCode(entity.getRegionCodeEntity() != null ? 
+                       entity.getRegionCodeEntity().getRegioncode() : null)
+            .wardName(entity.getWardCodeEntity() != null ? 
+                     entity.getWardCodeEntity().getName() : null)
+            .wardCode(entity.getWardCodeEntity() != null ? 
+                     entity.getWardCodeEntity().getWardcode() : null)
+            // 통계 정보 설정
+            .viewCount(viewCount != null ? viewCount : 0L)
+            .likeCount(likeCount != null ? likeCount : 0L)
+            .rating(rating != null ? rating : 0.0)
+            .reviewCount(reviewCount != null ? reviewCount : 0L)
             .build();
     }
 }
