@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.koreplan.entity.festival.FestivalEntity;
 
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,6 +16,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 //내 DB에서 프론트로 보낼 때 사용할 dto
+
 public class FestivalResponseDto {
     
     private String contentId;           // 콘텐츠 ID
@@ -35,6 +37,7 @@ public class FestivalResponseDto {
     private String mapx;                // 경도 (String)
     private String mapy;                // 위도 (String)
     
+    private String homepage; 			// 관련 페이지 주소
     private String c1Code;              // 대분류 코드
     private String c2Code;              // 중분류 코드
     private String c3Code;              // 소분류 코드
@@ -64,6 +67,7 @@ public class FestivalResponseDto {
             .firstimage2(entity.getFirstimage2())
             .mapx(entity.getMapx())
             .mapy(entity.getMapy())
+            .homepage(entity.getHomepage())
             .c1Code(entity.getC1Code())
             .c2Code(entity.getC2Code())
             .c3Code(entity.getC3Code())
@@ -84,14 +88,9 @@ public class FestivalResponseDto {
     
     // 상태를 계산하는 헬퍼 메서드
     private static String getFestivalStatus(FestivalEntity entity) {
-        LocalDate today = LocalDate.now();
-        LocalDate start = entity.getEventStartDate();
-        LocalDate end = entity.getEventEndDate();
-        
-        if (start.isAfter(today)) {
+        if (entity.isUpcoming()) {
             return "진행예정";
-        } else if ((start.isBefore(today) || start.isEqual(today)) && 
-                   (end.isAfter(today) || end.isEqual(today))) {
+        } else if (entity.isOngoing()) {
             return "진행중";
         } else {
             return "종료됨";
