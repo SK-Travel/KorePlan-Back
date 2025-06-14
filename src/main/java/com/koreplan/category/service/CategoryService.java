@@ -77,7 +77,7 @@ public class CategoryService {
         }
     
 	}
-//	@PostConstruct
+//	//@PostConstruct
 //    public void init() {
 //        try {
 //            ResponseEntity<ResponseDto> response = requestCategoryCodes();
@@ -91,9 +91,9 @@ public class CategoryService {
 //
 //            List<CategoryDto> items = dto.getResponse().getBody().getItems().getItem();
 //
-//            
+//
 //            saveCategoryCode(dto);
-//            
+//
 //            // 여기서 DB 저장 로직 추가 가능
 //            // saveAll(items) 등
 //
