@@ -127,7 +127,7 @@ public class RegionCodeApiService {
     }
     // 주석 처리 해야 함.
 
-//    @PostConstruct
+//    //@PostConstruct
 //    public void init() {
 //        try {
 //            ResponseEntity<ResponseDto> response = requestRegionCodes();
@@ -146,7 +146,7 @@ public class RegionCodeApiService {
 //                log.info("####지역 코드: {}, 지역명: {}", item.getCode(), item.getName());
 //            }
 //            saveRegionCode(dto);
-//            
+//
 //            // 여기서 DB 저장 로직 추가 가능
 //            // saveAll(items) 등
 //

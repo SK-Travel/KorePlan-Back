@@ -7,6 +7,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -83,7 +84,7 @@ public class SaveDataService {
 		}
 	}
 
-//	@PostConstruct
+//	//@PostConstruct
 //	public void init() {
 //		try {
 //			ResponseEntity<ResponseDto> response = requestData();
@@ -95,7 +96,7 @@ public class SaveDataService {
 //			}
 //
 //			List<DataDto> items = dto.getResponse().getBody().getItems().getItem();
-//			
+//
 //			saveData(dto);
 //
 //			// 여기서 DB 저장 로직 추가 가능
