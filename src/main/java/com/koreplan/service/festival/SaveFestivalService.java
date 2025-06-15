@@ -37,7 +37,10 @@ public class SaveFestivalService {
 	
 	@Value("${publicDataKey2}")  // 두 번째 서비스키 추가
 	private String serviceKey2;
-
+	
+	@Value("${publicDataKey3}") // 세 번째 서비스키 
+	private String serviceKey3;
+	
 	private final String API_BASE_URL = "https://apis.data.go.kr/B551011/KorService2/";
 	private final String First_API_URL = "areaBasedList2";
 	private final String Second_API_URL = "detailIntro2";
@@ -49,11 +52,24 @@ public class SaveFestivalService {
 	private final WardCodeRepository wardCodeRepository;
     private final FestivalRepository festivalRepository;
     
-    /**
-     * 서비스키를 교대로 반환
-     */
     private String getCurrentServiceKey(int index) {
-        String key = (index % 2 == 0) ? serviceKey1 : serviceKey2;
+        String key;
+        int keyIndex = index % 3;
+        
+        switch (keyIndex) {
+            case 0:
+                key = serviceKey1;
+                break;
+            case 1:
+                key = serviceKey2;
+                break;
+            case 2:
+                key = serviceKey3;
+                break;
+            default:
+                key = serviceKey1; // 기본값 (실제로는 도달하지 않음)
+        }
+        
         log.debug("사용할 서비스키 (인덱스 {}): {}", index, key.substring(0, 10) + "...");
         return key;
     }
@@ -447,8 +463,8 @@ public class SaveFestivalService {
 	    entity.setWardCodeEntity(wardEntity);
 	}
 	
-//	 @PostConstruct  // 주석 처리 - 이미 데이터가 들어있음
-	public void init() {
+
+	public void saveFestival() {
 	    try {
 	        log.info("전체 축제 데이터 초기화를 시작합니다... (서비스키 2개 교대 사용)");
 	        
