@@ -77,30 +77,30 @@ public class CategoryService {
         }
     
 	}
-//	//@PostConstruct
-//    public void init() {
-//        try {
-//            ResponseEntity<ResponseDto> response = requestCategoryCodes();
-//            ResponseDto dto = response.getBody();
-//
-//            if (dto == null) {
-//                log.warn("API 응답이 null입니다.");
-//                return;
-//            }
-//
-//
-//            List<CategoryDto> items = dto.getResponse().getBody().getItems().getItem();
-//
-//
-//            saveCategoryCode(dto);
-//
-//            // 여기서 DB 저장 로직 추가 가능
-//            // saveAll(items) 등
-//
-//        } catch (Exception e) {
-//            log.error("지역 코드 초기화 중 오류 발생", e);
-//        }
-//    }
+    public void savecategory() {
+		try {
+            ResponseEntity<ResponseDto> response = requestCategoryCodes();
+            ResponseDto dto = response.getBody();
+
+            if (dto == null) {
+                log.warn("API 응답이 null입니다.");
+                return;
+            }
+
+
+            List<CategoryDto> items = dto.getResponse().getBody().getItems().getItem();
+
+
+            saveCategoryCode(dto);
+
+            // 여기서 DB 저장 로직 추가 가능
+            // saveAll(items) 등
+
+        } catch (Exception e) {
+            log.error("지역 코드 초기화 중 오류 발생", e);
+        }
+    }
+    
 	public void saveCategoryCode(ResponseDto dto) {
 
         List<CategoryDto> items = dto.getResponse()
