@@ -111,8 +111,8 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> 
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))  // STATELESS → IF_REQUIRED
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers(
                     "/signIn",
@@ -121,7 +121,8 @@ public class SecurityConfig {
                     "/login/oauth2/code/**",  // OAuth2 콜백 URL
                     "/public/**",
                     "/api/**"
-                ).permitAll()
+                )
+                .permitAll().requestMatchers("/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2Login(oauth2 -> oauth2
