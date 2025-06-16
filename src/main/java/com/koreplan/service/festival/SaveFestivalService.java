@@ -25,6 +25,7 @@ import com.koreplan.dto.festival.FestivalTermDto;
 import com.koreplan.entity.festival.FestivalEntity;
 import com.koreplan.repository.festival.FestivalRepository;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -463,7 +464,7 @@ public class SaveFestivalService {
 	    entity.setWardCodeEntity(wardEntity);
 	}
 	
-
+//	@PostConstruct  // 주석 처리 - 이미 데이터가 들어있음
 	public void saveFestival() {
 	    try {
 	        log.info("전체 축제 데이터 초기화를 시작합니다... (서비스키 2개 교대 사용)");

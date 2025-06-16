@@ -39,6 +39,11 @@ public interface DataRepository extends JpaRepository<DataEntity,Long> {
     List<DataEntity> findByRegionCodeEntityAndWardCodeEntityAndThemeIn (@Param("region") RegionCodeEntity region,
         @Param("ward") WardCodeEntity ward,
         @Param("themeIds") List<Integer> themeIds);
+    
+    // 숙소 하나 추가하기
+    // DataEntity
+    List<DataEntity> findByRegionCodeEntityAndWardCodeEntityAndC1CodeOrderByViewCountDesc(RegionCodeEntity region, WardCodeEntity ward, String c1Code);
+    
 
     //조회수 증가 메서드
     //데이터 엔티티의 고유 id를 통해 값을 변경시키는 메서드임.
