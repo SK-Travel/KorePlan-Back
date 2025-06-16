@@ -8,8 +8,8 @@ import com.koreplan.data.entity.DataEntity;
 import com.koreplan.data.repository.DataRepository;
 import com.koreplan.entity.theme.ThemeEntity;
 import com.koreplan.repository.theme.ThemeRepository;
-// import com.koreplan.repository.LikeRepository;  // 추후 생성
-// import com.koreplan.repository.ReviewRepository; // 추후 생성
+import com.koreplan.repository.like.LikeRepository;  // 추후 생성
+// import com.koreplan.repository.review.ReviewRepository; // 추후 생성
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -33,8 +33,8 @@ public class SearchDataService {
     private ThemeRepository themeRepository;
     
     // TODO: 추후 Like, Review Repository 추가
-    // @Autowired
-    // private LikeRepository likeRepository;
+     @Autowired
+     private LikeRepository likeRepository;
     // @Autowired  
     // private ReviewRepository reviewRepository;
     
@@ -86,9 +86,8 @@ public class SearchDataService {
         // 1. viewCount는 이미 DataEntity에 저장됨
         stats.setViewCount(data.getViewCount());
         
-        // 2. likeCount - Like 엔터티 개수 (TODO: 구현 필요)
-        // int likeCount = likeRepository.countByContentId(data.getContentId());
-        int likeCount = generateRandomLikeCount(); // 임시
+        // 2. likeCount - Like 엔터티 개수
+        int likeCount = likeRepository.countByDataId(data.getId());
         stats.setLikeCount(likeCount);
         
         // 3. reviewCount - Review 엔터티 개수 (TODO: 구현 필요)  

@@ -7,6 +7,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -83,28 +84,27 @@ public class SaveDataService {
 		}
 	}
 
-//	@PostConstruct
-//	public void init() {
-//		try {
-//			ResponseEntity<ResponseDto> response = requestData();
-//			ResponseDto dto = response.getBody();
-//
-//			if (dto == null) {
-//				log.warn("API 응답이 null입니다.");
-//				return;
-//			}
-//
-//			List<DataDto> items = dto.getResponse().getBody().getItems().getItem();
-//			
-//			saveData(dto);
-//
-//			// 여기서 DB 저장 로직 추가 가능
-//			// saveAll(items) 등
-//
-//		} catch (Exception e) {
-//			log.error("지역 코드 초기화 중 오류 발생", e);
-//		}
-//	}
+	public void saveDataService() {
+		try {
+			ResponseEntity<ResponseDto> response = requestData();
+			ResponseDto dto = response.getBody();
+
+			if (dto == null) {
+				log.warn("API 응답이 null입니다.");
+				return;
+			}
+
+			List<DataDto> items = dto.getResponse().getBody().getItems().getItem();
+
+			saveData(dto);
+
+			// 여기서 DB 저장 로직 추가 가능
+			// saveAll(items) 등
+
+		} catch (Exception e) {
+			log.error("지역 코드 초기화 중 오류 발생", e);
+		}
+	}
 
 	public void saveData(ResponseDto dto) {
 		
