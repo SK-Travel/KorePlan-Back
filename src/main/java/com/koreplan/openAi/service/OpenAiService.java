@@ -1,5 +1,6 @@
 package com.koreplan.openAi.service;
 
+import java.text.Normalizer;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -14,11 +15,9 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatusCode;
-import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -35,10 +34,10 @@ import com.koreplan.openAi.UsageTracker;
 
 import io.netty.channel.ChannelOption;
 import jakarta.annotation.PostConstruct;
-import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
 @Service
+@Transactional
 public class OpenAiService {
 	
 	// API키 읽기
@@ -103,7 +102,7 @@ public class OpenAiService {
             String gptPrompt = """
             		당신은 여행 일정 플래너입니다. 다음 조건에 맞는 일정(JSON 배열)만 생성하세요: 지역: %s, 여행일 수: %d일, 동행 유형: %s, 선호 장소: %s
             		일정 조건: Day 1과 Day %d는 1~2개 장소만 추천, 중간 날짜들은 각 3~4개 장소 추천, 장소 간 이동 거리는 짧게 구성
-            		응답 형식: JSON 배열만 출력하세요. 코드블록(```json 등)은 절대 포함하지 마세요.예시: [{"day": 1, "order": 1, "region": "서울특별시", "ward": "강남구", "name": "경복궁", "lat": 37.579617, "lng": 126.977041}, ...]
+            		응답 형식: JSON 배열만 출력하세요. 코드블록(```json 등)은 절대 포함하지 마세요.예시: [{"day": 1, "order": 1, "region": "서울특별시", "ward": "강남구", "title": "경복궁"}, ...]
             		""".formatted(region, days, companion, preferences, days);
 
             int estimatedInputTokens = gptPrompt.length() / 4;
@@ -183,6 +182,7 @@ public class OpenAiService {
 	}
 	
 	// 필터링 로직
+	@Transactional(readOnly = true)
 	public List<JsonNode> filterExistingPlaces (JsonNode gptArray, List<Integer> themeIds) {
 		List<JsonNode> result = new ArrayList<>();
 		
@@ -190,7 +190,7 @@ public class OpenAiService {
 			String regionName = normalizeRegionName(place.get("region").asText()); // 서울 특별시
 //			String regionName = place.get("region").asText();
 	        String wardName = place.has("ward") ? place.get("ward").asText() : null;  // ex) 강남구
-	        String placeName = place.has("name") ? place.get("name").asText() : null;
+	        String placeName = place.has("title") ? place.get("title").asText() : null;
 	        
 	        if (wardName == null || placeName == null) continue;
 
@@ -206,26 +206,49 @@ public class OpenAiService {
 
 	        // ✅ 유사한 이름 비교 (공백, 대소문자 무시)
 	        List<DataEntity> candidates = dataRepository.findByRegionCodeEntityAndWardCodeEntityAndThemeIn(regionEntity, wardEntity, themeIds);
-	        for (DataEntity d : candidates) { // 반복문으로 변경
-	            if (isSimilarName(d.getTitle(), placeName)) {
-	                // day, order 포함하여 그대로 복사
-	                ObjectNode node = mapper.createObjectNode();
-	                node.put("day", place.get("day").asInt());
-	                node.put("order", place.get("order").asInt());
-	                node.put("region", regionName);
-	                node.put("ward", wardName);
-	                node.put("name", placeName);
-	                node.put("lat", place.get("lat").asDouble());
-	                node.put("lng", place.get("lng").asDouble());
-//	            node.put("description", place.get("description").asText());
-	                node.put("contentId", d.getContentId()); // 🔧 contentId 추가
-	                node.put("firstimage", d.getFirstimage()); // 이미지 추가
-	                result.add(node);
+	        for (DataEntity data : candidates) { // 반복문으로 변경
+	        	System.out.println("[후보] " + data.getTitle());
+	            if (isSimilarName(data.getTitle(), placeName)) {
+	            	if (data.getC1Code().equals("AC")) {
+	            		continue;
+	            	}
+	            	ObjectNode node = mapper.createObjectNode();
+	            	node.put("day", place.get("day").asInt());
+	            	node.put("order", place.get("order").asInt());
+//	            	node.put("region", regionName);
+//	            	node.put("ward", wardName);
+//	            	node.put("title", placeName);
+	            	node.put("title", data.getTitle());
+	            	node.put("mapx", data.getMapx()); // 🧠 DB 기준 좌표 사용 권장
+	            	node.put("mapy", data.getMapy());
+	            	node.put("contentId", data.getContentId());
+	            	node.put("firstimage", data.getFirstimage());
+	            	node.put("firstimage2", data.getFirstimage2());
+	            	node.put("addr1", data.getAddr1());
+	            	node.put("addr2", data.getAddr2());
+	            	node.put("c1Code", data.getC1Code());
+	            	node.put("c2Code", data.getC2Code());
+	            	node.put("c3Code", data.getC3Code());
+	            	node.put("tel", data.getTel());
+	            	node.put("contentTypeId", data.getTheme());
+	            	node.put("theme", data.getTheme());
+    	            node.put("regionName", data.getRegionCodeEntity().getName());
+    	            node.put("regionCode", data.getRegionCodeEntity().getRegioncode());
+    	            node.put("wardName", data.getWardCodeEntity().getName());
+    	            node.put("wardCode", data.getWardCodeEntity().getWardcode());
+    	            node.put("viewCount", data.getViewCount());
+    	            //나중에 고쳐야 함
+    	            node.put("rating", 0.0);
+    	            node.put("reviewCount", 0);
+    	            node.put("likeCount", 0);
+    	            
+    	            System.out.println("[매칭 시도] GPT: " + placeName + " ↔ DB: " + data.getTitle()
+    	            + " → isSimilarName 결과: " + isSimilarName(data.getTitle(), placeName));
+    	            result.add(node);
 	                break; // 🔧 매칭되었으므로 반복 종료
 	            }
 	        }
 		}
-		System.out.println("[필터링] GPT 추천 " + gptArray.size() + " → DB 존재 " + result.size());
 		return result;
 	}
 	
@@ -241,6 +264,7 @@ public class OpenAiService {
      * @param ward 동명 (예: "강남구")
      * @return 보완된 장소 리스트 (filteredPlaces에 부족분 추가됨)
      */
+	@Transactional(readOnly = true)
     public List<JsonNode> fillWithDbPlacesOnly(List<String> missingKeys, String region, String ward, List<Integer> themeIds) {
         
     	 RegionCodeEntity regionEntity  = regionCodeRepository.findRegionByNameForAI(region).orElse(null);
@@ -264,16 +288,36 @@ public class OpenAiService {
     	            String norm = normalize(data.getTitle());
     	            if (usedNames.contains(norm)) continue;
     	            usedNames.add(norm);
-
-    	            ObjectNode node = mapper.createObjectNode();
+	            	if (data.getC1Code().equals("AC")) {
+	            		continue;
+	            	}
+    	            
+    	            ObjectNode node = mapper.createObjectNode();      
     	            node.put("region", region);
     	            node.put("ward", ward);
-    	            node.put("name", data.getTitle());
-//    	            node.put("description", "설명 준비 중입니다.");
-    	            node.put("lng", Double.parseDouble(data.getMapx()));
-    	            node.put("lat", Double.parseDouble(data.getMapy()));
+    	            node.put("title", data.getTitle());
+    	            node.put("mapx", Double.parseDouble(data.getMapx()));
+    	            node.put("mapy", Double.parseDouble(data.getMapy()));
     	            node.put("contentId", data.getContentId());
     	            node.put("firstimage", data.getFirstimage());
+    	            node.put("firstimage2", data.getFirstimage2());
+    	            node.put("addr1", data.getAddr1());
+    	            node.put("addr2", data.getAddr2());
+    	            node.put("c1Code", data.getC1Code());
+    	            node.put("c2Code", data.getC2Code());
+    	            node.put("c3Code", data.getC3Code());
+    	            node.put("tel", data.getTel());
+    	            node.put("contentTypeId", data.getTheme());
+    	            node.put("theme", data.getTheme());
+    	            node.put("regionName", data.getRegionCodeEntity().getName());
+    	            node.put("regionCode", data.getRegionCodeEntity().getRegioncode());
+    	            node.put("wardName", data.getWardCodeEntity().getName());
+    	            node.put("wardCode", data.getWardCodeEntity().getWardcode());
+    	            node.put("viewCount", data.getViewCount());
+    	            //나중에 고쳐야 함
+    	            node.put("rating", 0.0);
+    	            node.put("reviewCount", 0);
+    	            node.put("likeCount", 0);
     	            result.add(node);
     	            break;
     	        }
@@ -295,7 +339,7 @@ public class OpenAiService {
      * @param gptCount GPT 추천 장소 수
      * @return 필터링 + 보완된 장소 리스트
      */
-    
+	@Transactional(readOnly = true)
     public List<JsonNode> getFilteredAndFilledPlaces(JsonNode gptArray, int gptCount, List<Integer> themeIds) {
         List<JsonNode> filtered = filterExistingPlaces(gptArray, themeIds);
 
