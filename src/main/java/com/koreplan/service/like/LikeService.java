@@ -21,7 +21,7 @@ public class LikeService {
 
 	// 기존 좋아요 토글 메서드 (기존 로직 유지)
 	@Transactional
-	public int likeToggle(Long dataId, int userId) {
+	public boolean likeToggle(Long dataId, int userId) {
 		// 조회
 		boolean exists = likeRepository.existsByDataIdAndUserId(dataId, userId);
 
@@ -30,7 +30,7 @@ public class LikeService {
 			// 찜 되어있으면 삭제
 			likeRepository.deleteByDataIdAndUserId(dataId, userId);
 			System.out.println("좋아요 삭제: userId=" + userId + ", dataId=" + dataId);
-			return 0; // 찜 취소
+			return false; // 찜 취소
 		} else {
 			LikeEntity like = LikeEntity.builder()
 					.dataId(dataId)
@@ -38,7 +38,7 @@ public class LikeService {
 					.build();
 			likeRepository.save(like);
 			System.out.println("좋아요 추가: userId=" + userId + ", dataId=" + dataId);
-			return 1; // 찜 추가
+			return true; // 찜 추가
 		}
 	}
 
