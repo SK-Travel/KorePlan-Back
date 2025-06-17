@@ -30,7 +30,7 @@ public class LikeRestController {
 	@Autowired
 	private LikeService likeService;
 
-	// 좋아요 토글 (기존 기능)
+	// 좋아요 토글
 	@PostMapping("/{dataId}")
 	public Map<String, Object> likeToggle(
 			@PathVariable(name = "dataId") Long dataId,
@@ -64,16 +64,16 @@ public class LikeRestController {
 			result.put("error_message", "로그인되지 않았습니다. 로그인 해주세요");
 		} else {
 			System.out.println("✅ 인증 성공 - userId: " + userId + ", dataId: " + dataId);
-			int likeStatus = likeService.likeToggle(dataId, userId);
+			boolean likeStatus = likeService.likeToggle(dataId, userId);
 			result.put("code", 200);
 			result.put("likeStatus", likeStatus);
-			result.put("message", likeStatus == 1 ? "찜 추가됨" : "찜 취소됨");
+			result.put("message", likeStatus  ? "찜 추가됨" : "찜 취소됨");
 			System.out.println("좋아요 처리 결과: " + likeStatus);
 		}
 		return result;
 	}
 
-	// 현재 사용자의 모든 좋아요 목록 조회 (내 찜페이지에서 활용)
+	// 현재 사용자의 모든 좋아요 목록 조회 
 	@GetMapping("/my-likes")
 	public Map<String, Object> getMyLikes(
 			HttpSession session,
@@ -110,7 +110,7 @@ public class LikeRestController {
 		return result;
 	}
 
-	//여러 데이터의 좋아요 상태 확인 (dataList에서 활용)
+	//여러 데이터의 좋아요 상태 확인
 	@PostMapping("/check-status")
 	public Map<String, Object> checkLikeStatus(
 			@RequestBody Map<String, List<Long>> request,
