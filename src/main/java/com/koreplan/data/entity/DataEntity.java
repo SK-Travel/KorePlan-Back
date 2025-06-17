@@ -44,11 +44,11 @@ public class DataEntity {
 	@Column(name = "view_count")
 	private int viewCount = 0;
 	@Column(name = "review_count")
-    private int reviewCount = 0;
+    private Integer reviewCount = 0;
     @Column(name = "rating")
-    private double rating = 0.0;
+    private Double rating = 0.0;
     @Column(name = "score")
-    private double score = 0.0;
+    private Double score = 0.0;
 	// regioncode → 연관관계 설정
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "regioncodeId", referencedColumnName = "id")
