@@ -34,10 +34,10 @@ public class DataResponseDto {
     private Long wardCode;
     
     // 통계 정보 추가
-    private Long viewCount;     // 조회수
+    private int viewCount;     // 조회수
     private Long likeCount;     // 좋아요 수
     private Double rating;      // 평점
-    private Long reviewCount;   // 리뷰 수
+    private Integer reviewCount;   // 리뷰 수
     
     // Entity에서 DTO로 변환하는 정적 메서드
     public static DataResponseDto fromEntity(DataEntity entity) {
@@ -99,10 +99,10 @@ public class DataResponseDto {
             .wardCode(entity.getWardCodeEntity() != null ? 
                      entity.getWardCodeEntity().getWardcode() : null)
             // 통계 정보 설정
-            .viewCount(viewCount != null ? viewCount : 0L)
-            .likeCount(likeCount != null ? likeCount : 0L)
-            .rating(rating != null ? rating : 0.0)
-            .reviewCount(reviewCount != null ? reviewCount : 0L)
+            .viewCount(entity.getViewCount())
+            .likeCount(1L)
+            .rating(entity.getRating())
+            .reviewCount(entity.getReviewCount())
             .build();
     }
 }
