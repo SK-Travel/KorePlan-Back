@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -26,7 +27,8 @@ import lombok.RequiredArgsConstructor;
 
 //OAuth2 로그인 성공 후 처리 핸들러 - 로그인 성공 후 사용자 DB 등록 및 JWT 발급 후 리다이렉트 처리
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
-
+	@Value("${app.frontend.redirect-url}")
+	private String frontendRedirectUrl;
 	@Autowired
 	private EncryptUtils encryptUtils;
 
@@ -103,11 +105,12 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 		System.out.println("sessionId: " + session.getId());
 
 		// 이메일, 이름, 타입, 토큰 쿼리파라미터로 넘김
-		String redirectUrl = String.format("http://localhost:5173/oauth2/redirection?email=%s&name=%s&type=%s&token=%s",
-				java.net.URLEncoder.encode(email, "UTF-8"),
-				java.net.URLEncoder.encode(name, "UTF-8"),
-				redirectType,
-				token);
+		String redirectUrl = String.format("%s?email=%s&name=%s&type=%s&token=%s",
+		        frontendRedirectUrl,
+		        java.net.URLEncoder.encode(email, "UTF-8"),
+		        java.net.URLEncoder.encode(name, "UTF-8"),
+		        redirectType,
+		        token);
 
 		response.setCharacterEncoding("UTF-8");
 		response.sendRedirect(redirectUrl);

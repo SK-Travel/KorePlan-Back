@@ -41,10 +41,14 @@ public class DataEntity {
 	
 	private int theme;
 	
-	// 조회수 추가
 	@Column(name = "view_count")
 	private int viewCount = 0;
-	
+	@Column(name = "review_count")
+    private Integer reviewCount = 0;
+    @Column(name = "rating")
+    private Double rating = 0.0;
+    @Column(name = "score")
+    private Double score = 0.0;
 	// regioncode → 연관관계 설정
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "regioncodeId", referencedColumnName = "id")
@@ -53,4 +57,5 @@ public class DataEntity {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "wardcodeId", referencedColumnName = "id")
 	private WardCodeEntity wardCodeEntity;
+	
 }
