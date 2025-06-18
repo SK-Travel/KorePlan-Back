@@ -3,21 +3,26 @@ package com.koreplan.service.like;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.koreplan.data.entity.DataEntity;
+import com.koreplan.data.repository.DataRepository;
 import com.koreplan.entity.like.LikeEntity;
 import com.koreplan.repository.like.LikeRepository;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class LikeService {
 
 	@Autowired
 	private LikeRepository likeRepository;
+	@Autowired
+	private DataRepository dataRepository;
 
 	// 기존 좋아요 토글 메서드 (기존 로직 유지)
 	@Transactional
@@ -37,6 +42,7 @@ public class LikeService {
 					.userId(userId)
 					.build();
 			likeRepository.save(like);
+			
 			System.out.println("좋아요 추가: userId=" + userId + ", dataId=" + dataId);
 			return true; // 찜 추가
 		}

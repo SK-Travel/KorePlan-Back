@@ -2,6 +2,7 @@ package com.koreplan.service.review;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.koreplan.data.entity.DataEntity;
 import com.koreplan.data.repository.DataRepository;
+import com.koreplan.dto.review.ReviewDto;
 import com.koreplan.entity.review.ReviewEntity;
 import com.koreplan.repository.review.ReviewRepository;
 import com.koreplan.user.entity.UserEntity;
@@ -22,12 +24,12 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public class ReviewService {
-	private final ReviewRepository reviewRepository;
-	private final DataRepository dataRepository;
-	private final UserRepository userRepository;
-	
-	
-	 /**
+    private final ReviewRepository reviewRepository;
+    private final DataRepository dataRepository;
+    private final UserRepository userRepository;
+    
+    
+    /**
      * 리뷰 작성
      */
     public ReviewEntity createReview(Long dataId, int userId, int rating, String content) {
@@ -111,7 +113,7 @@ public class ReviewService {
     }
 
     /**
-     * 특정 데이터의 모든 리뷰 조회 (페이징)
+     * 특정 데이터의 모든 리뷰 조회 (페이징) - Entity 반환
      */
     @Transactional(readOnly = true)
     public Page<ReviewEntity> getReviewsByDataId(Long dataId, Pageable pageable) {
@@ -119,11 +121,31 @@ public class ReviewService {
     }
 
     /**
-     * 특정 사용자의 모든 리뷰 조회
+     * 특정 데이터의 모든 리뷰 조회 (페이징) - DTO 반환
+     */
+    @Transactional(readOnly = true)
+    public Page<ReviewDto> getReviewsDtoByDataId(Long dataId, Pageable pageable) {
+        Page<ReviewEntity> reviewEntities = reviewRepository.findByDataEntityIdOrderByCreatedAtDesc(dataId, pageable);
+        return reviewEntities.map(this::convertToDto);
+    }
+
+    /**
+     * 특정 사용자의 모든 리뷰 조회 - Entity 반환
      */
     @Transactional(readOnly = true)
     public List<ReviewEntity> getReviewsByUserId(int userId) {
         return reviewRepository.findByUserEntityIdOrderByCreatedAtDesc(userId);
+    }
+
+    /**
+     * 특정 사용자의 모든 리뷰 조회 - DTO 반환
+     */
+    @Transactional(readOnly = true)
+    public List<ReviewDto> getReviewsDtoByUserId(int userId) {
+        List<ReviewEntity> reviewEntities = reviewRepository.findByUserEntityIdOrderByCreatedAtDesc(userId);
+        return reviewEntities.stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -190,6 +212,19 @@ public class ReviewService {
     }
 
     /**
+     * Entity를 DTO로 변환
+     */
+    private ReviewDto convertToDto(ReviewEntity entity) {
+        ReviewDto dto = new ReviewDto();
+        dto.setUserid(entity.getUserEntity().getId());
+        dto.setDataid(entity.getDataEntity().getId());
+        dto.setContentId(entity.getDataEntity().getContentId());
+        dto.setComment(entity.getContent());
+        dto.setRate(entity.getRating());
+        return dto;
+    }
+
+    /**
      * 리뷰 통계 내부 클래스
      */
     public static class ReviewStats {
@@ -222,5 +257,4 @@ public class ReviewService {
         public int getTwoStarCount() { return twoStarCount; }
         public int getOneStarCount() { return oneStarCount; }
     }
-
 }
