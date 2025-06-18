@@ -11,11 +11,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
 import com.koreplan.common.EncryptUtils;
+import com.koreplan.common.JwtTokenProvider;
 import com.koreplan.user.entity.UserEntity;
 import com.koreplan.user.service.UserService;
-
 import jakarta.servlet.http.HttpSession;
 
 @RestController
@@ -27,6 +26,9 @@ public class UserRestController {
 	
 	@Autowired
 	private EncryptUtils encryptUtils;
+
+	@Autowired
+	private JwtTokenProvider jwtTokenProvider;
 	
 	// 테스트용
     @GetMapping("")
@@ -163,9 +165,18 @@ public class UserRestController {
 			// 정보 저장 session에
 			session.setAttribute("userId", savedUser.getId());
 			session.setAttribute("name", savedUser.getName());
+			session.setAttribute("email", savedUser.getEmail());
+			
+			// **여기서 JWT 토큰 생성 후 result에 넣기!**
+	    String token = jwtTokenProvider.generateToken(savedUser.getLoginId()); // 예시
 			
 			result.put("code", 200);
 			result.put("result", "로그인 성공, 메인페이지로 이동합니다.");
+			result.put("token", token);
+			result.put("userId", savedUser.getId());
+			result.put("name", savedUser.getName());
+			result.put("email", savedUser.getEmail());
+        
 		} else {
 			result.put("code", 401);
 			result.put("error_message", "비밀번호가 틀렸습니다.");
