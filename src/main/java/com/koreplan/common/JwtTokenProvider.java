@@ -20,7 +20,8 @@ public class JwtTokenProvider {
     // 실제 JWT 서명에 사용하는 Key 객체
 	private Key secretKey;
 	// 토큰 만료 시간 (1일, 밀리초 단위)
-	private final long EXPIRATION_TIME = 1000 * 60 * 60 * 2; //1일
+  
+	private final long EXPIRATION_TIME = 1000 * 60 * 60 * 2; //2시간
 	
 	// 빈 초기화 후 실행, Base64 키를 디코딩하여 Key 객체 생성
     @PostConstruct
