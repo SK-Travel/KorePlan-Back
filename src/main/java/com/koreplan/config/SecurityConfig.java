@@ -107,18 +107,19 @@ public class SecurityConfig {
 //
 //        return http.build();
 //    }
+    
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> 
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))  // ✅ STATELESS → IF_REQUIRED 변경
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers(
                     "/signIn",
                     "/signup", 
                     "/oauth2/**",
-                    "/login/oauth2/code/**",  // OAuth2 콜백 URL
+                    "/login/oauth2/code/**",
                     "/public/**",
                     "/api/**"
                 ).permitAll()
@@ -131,6 +132,7 @@ public class SecurityConfig {
             )
             .formLogin(form -> form.disable());
 
+        // JWT 필터는 선택적으로 적용 (OAuth2 로그인과 충돌 방지)
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

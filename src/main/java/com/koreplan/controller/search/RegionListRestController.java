@@ -58,6 +58,7 @@ public class RegionListRestController {
         return dataList.stream()
             .map(entity -> {
                 DataStatsDto stats = statsMap.getOrDefault(entity.getContentId(), new DataStatsDto());
+
                 return DataResponseDto.fromEntityWithStats(
                     entity,
                     (long) stats.getViewCount(),

@@ -65,6 +65,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 		Optional<UserEntity> userOptional = userRepository.findByEmail(email);
 		
 		String redirectType;
+		UserEntity savedUser; // ✅ 저장된 사용자 정보를 받기 위한 변수
 		
 		// DB에 사용자가 없으면 새로 등록
         if (userOptional.isEmpty()) {
@@ -78,19 +79,28 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
                     .phoneNumber("")
                     .build();
 
-            userRepository.save(newUser);
+            savedUser = userRepository.save(newUser); // ✅ 저장된 사용자 정보 받기
             redirectType = "signup"; // 회원가입 타입
         } else {
+            savedUser = userOptional.get(); // ✅ 기존 사용자 정보 받기
             redirectType = "login";   // 로그인 타입
         }
 
         // JWT 생성
         String token = jwtTokenProvider.generateToken(email);
         
-        // 세션저장
+        // ✅ 세션에 userId 포함하여 저장 (좋아요 API에서 필요)
         HttpSession session = request.getSession();
+        session.setAttribute("userId", savedUser.getId()); // 👈 중요: userId 추가
         session.setAttribute("email", email);
         session.setAttribute("name", name);
+        
+        // 디버그 로그 추가
+        System.out.println("=== OAuth2 로그인 세션 저장 ===");
+        System.out.println("userId: " + savedUser.getId());
+        System.out.println("email: " + email);
+        System.out.println("name: " + name);
+        System.out.println("sessionId: " + session.getId());
         
         // 이메일, 이름, 타입, 토큰 쿼리파라미터로 넘김
         String redirectUrl = String.format("http://localhost:5173/oauth2/redirection?email=%s&name=%s&type=%s&token=%s",
