@@ -10,6 +10,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 public class KorePlanApplication {
+
 	static {
         // Eclipse에서 .env 파일 강제 로드
         try {
@@ -24,6 +25,11 @@ public class KorePlanApplication {
             System.err.println("Failed to load .env file: " + e.getMessage());
         }
     }
+
+
+	
+
+
 	public static void main(String[] args) {
 		SpringApplication.run(KorePlanApplication.class, args);
 	}

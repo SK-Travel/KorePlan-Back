@@ -218,6 +218,7 @@ public class OpenAiService {
 //	            	node.put("region", regionName);
 //	            	node.put("ward", wardName);
 //	            	node.put("title", placeName);
+	            	node.put("id", data.getId());
 	            	node.put("title", data.getTitle());
 	            	node.put("mapx", data.getMapx()); // 🧠 DB 기준 좌표 사용 권장
 	            	node.put("mapy", data.getMapy());
@@ -292,9 +293,10 @@ public class OpenAiService {
 	            		continue;
 	            	}
     	            
-    	            ObjectNode node = mapper.createObjectNode();      
+    	            ObjectNode node = mapper.createObjectNode();
     	            node.put("region", region);
     	            node.put("ward", ward);
+    	            node.put("id", data.getId());
     	            node.put("title", data.getTitle());
     	            node.put("mapx", Double.parseDouble(data.getMapx()));
     	            node.put("mapy", Double.parseDouble(data.getMapy()));
