@@ -19,6 +19,9 @@ import com.koreplan.area.entity.RegionCodeEntity;
 import com.koreplan.area.entity.WardCodeEntity;
 import com.koreplan.area.repository.RegionCodeRepository;
 import com.koreplan.area.repository.WardCodeRepository;
+import com.koreplan.category.service.CategoryService;
+import com.koreplan.data.service.SaveDataService;
+import com.koreplan.service.festival.SaveFestivalService;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +36,9 @@ public class RegionCodeApiService {
     private final RegionCodeRepository regionCodeRepository; //시or도 코드 저장
     private final WardCodeRepository wardCodeRepository; // 시or도의 시or구(군) 코드 저장
     private final ObjectMapper objectMapper; // Jackson의 ObjectMapper 주입
-    
+    private final CategoryService categoryService;
+    private final SaveDataService saveDataService;
+    private final SaveFestivalService saveFestivalService;
     @Value("${publicDataKey}")
     private String key;
 
@@ -126,34 +131,15 @@ public class RegionCodeApiService {
         return ResponseEntity.ok(responseDto);
     }
     // 주석 처리 해야 함.
-
-//    @PostConstruct
-//    public void init() {
-//        try {
-//            ResponseEntity<ResponseDto> response = requestRegionCodes();
-//            ResponseDto dto = response.getBody();
-//
-//            if (dto == null) {
-//                log.warn("API 응답이 null입니다.");
-//                return;
-//            }
-//
-//
-//            List<Item> items = dto.getResponse().getBody().getItems().getItem();
-//
-//            // 예시: 아이템 리스트 출력
-//            for (Item item : items) {
-//                log.info("####지역 코드: {}, 지역명: {}", item.getCode(), item.getName());
-//            }
-//            saveRegionCode(dto);
-//            
-//            // 여기서 DB 저장 로직 추가 가능
-//            // saveAll(items) 등
-//
-//        } catch (Exception e) {
-//            log.error("지역 코드 초기화 중 오류 발생", e);
-//        }
-//    }
+// 	모든데이터 여기서 저장하게(지역코드를 먼저 받아야하므로)
+    //@PostConstruct
+    public void init() {
+         saveAllDatas();
+         categoryService.savecategory();
+         saveDataService.saveDataService();
+         //saveFestivalService.saveFestival();
+         
+    }
     public void saveRegionCode(ResponseDto dto) throws Exception {
         List<Item> items = dto.getResponse().getBody().getItems().getItem();
         
@@ -192,5 +178,35 @@ public class RegionCodeApiService {
         // Ward 엔티티들 저장
         wardCodeRepository.saveAll(entities);
     }
+    private void saveAllDatas() {
+    	try {
+            ResponseEntity<ResponseDto> response = requestRegionCodes();
+            ResponseDto dto = response.getBody();
+
+            if (dto == null) {
+                log.warn("API 응답이 null입니다.");
+                return;
+            }
+
+
+            List<Item> items = dto.getResponse().getBody().getItems().getItem();
+
+            // 예시: 아이템 리스트 출력
+            for (Item item : items) {
+                log.info("####지역 코드: {}, 지역명: {}", item.getCode(), item.getName());
+            }
+            saveRegionCode(dto);
+
+            // 여기서 DB 저장 로직 추가 가능
+            // saveAll(items) 등
+
+        }
+    	catch (Exception e) {
+            log.error("지역 코드 초기화 중 오류 발생", e);
+        }
+    }
+    
+  
+    	
 }
 

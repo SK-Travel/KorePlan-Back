@@ -12,11 +12,10 @@ import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequest
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
 import com.koreplan.common.JwtAuthenticationFilter;
 import com.koreplan.user.oauth2.dto.CustomOAuth2UserService;
 import com.koreplan.user.oauth2.dto.OAuth2LoginSuccessHandler;
-
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
@@ -112,8 +111,8 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> 
-                session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))  // ✅ STATELESS → IF_REQUIRED 변경
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))  // STATELESS → IF_REQUIRED
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers(
                     "/signIn",
@@ -122,9 +121,17 @@ public class SecurityConfig {
                     "/login/oauth2/code/**",
                     "/public/**",
                     "/api/**"
-                ).permitAll()
+                )
+                .permitAll().requestMatchers("/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .anyRequest().authenticated()
             )
+            .exceptionHandling(exception -> 
+            exception.authenticationEntryPoint((request, response, authException) -> {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"error\": \"Unauthorized\"}");
+	            })
+	        )
             .oauth2Login(oauth2 -> oauth2
                 .userInfoEndpoint(userInfo -> 
                     userInfo.userService(customOAuth2UserDTO))

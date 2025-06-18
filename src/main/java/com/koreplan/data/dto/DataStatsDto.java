@@ -8,4 +8,5 @@ public class DataStatsDto {
     private int likeCount;
     private int reviewCount;
     private double rating;
+    private double score;
 }
