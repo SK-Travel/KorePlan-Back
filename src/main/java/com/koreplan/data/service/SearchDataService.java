@@ -66,6 +66,7 @@ public class SearchDataService {
 	/**
 	 * 여러 contentId에 대한 데이터 일괄 조회
 	 */
+	//zz
 	public Map<String, DataEntity> getBatchDataByContentIds(List<String> contentIds) {
 		log.info("배치 데이터 조회 요청 - contentIds 개수: {}", contentIds.size());
 
