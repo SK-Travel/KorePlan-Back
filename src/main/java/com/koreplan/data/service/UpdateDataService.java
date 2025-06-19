@@ -16,14 +16,22 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Transactional
 public class UpdateDataService {
-	@Autowired
+    @Autowired
     private DataRepository dataRepository;
+    @Autowired
+    private ScoreCalculationService scoreCalculationService; // ✅ 추가
     
-    // 조회수 증가
+    // 조회수 증가 (Score 계산 추가)
     public void incrementViewCount(Long dataId) {
         dataRepository.incrementViewCount(dataId);
+        
+        // ✅ Score 실시간 업데이트
+        scoreCalculationService.updateScore(dataId);
+        
+        log.info("조회수 및 Score 업데이트 완료 - dataId: {}", dataId);
     }
-
+    
+    // contentId로 조회수 증가 (Score 계산 추가)
     public void incrementViewCountByContentId(String contentId) {
         log.info("조회수 증가 처리 - contentId: {}", contentId);
         
@@ -32,6 +40,9 @@ public class UpdateDataService {
         
         dataRepository.incrementViewCount(data.getId());
         
-        log.info("조회수 증가 완료 - contentId: {}, dataId: {}", contentId, data.getId());
+        // ✅ Score 실시간 업데이트
+        scoreCalculationService.updateScore(data.getId());
+        
+        log.info("조회수 및 Score 업데이트 완료 - contentId: {}, dataId: {}", contentId, data.getId());
     }
 }

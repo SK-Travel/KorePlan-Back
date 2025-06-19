@@ -1,7 +1,5 @@
 package com.koreplan.data.controller;
 
-
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,9 +8,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.koreplan.data.dto.DataStatsDto;
+import com.koreplan.data.entity.DataEntity;
 import com.koreplan.data.service.SearchDataService;
 import com.koreplan.data.service.UpdateDataService;
+import com.koreplan.data.dto.DataStatsResponse; // ✅ 별도 클래스 import
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -55,17 +54,27 @@ public class DataStatsController {
     }
     
     /**
-     * 통계 조회
+     * 통계 조회 (DataEntity 기반으로 수정)
      * GET /api/data/stats/{contentId}
      */
     @GetMapping("/{contentId}")
-    public ResponseEntity<DataStatsDto> getSpotStats(@PathVariable String contentId) {
+    public ResponseEntity<DataStatsResponse> getSpotStats(@PathVariable String contentId) {
         try {
             log.info("통계 조회 요청 - contentId: {}", contentId);
             
-            DataStatsDto stats = searchDataService.getDataStatsByContentId(contentId);
+            // ✅ DataEntity에서 바로 통계 정보 조회
+            DataEntity dataEntity = searchDataService.getDataWithStatsByContentId(contentId);
             
-            log.info("통계 조회 완료 - contentId: {}, viewCount: {}", contentId, stats.getViewCount());
+            DataStatsResponse stats = DataStatsResponse.builder()
+                .contentId(dataEntity.getContentId())
+                .viewCount(dataEntity.getViewCount())
+                .rating(dataEntity.getRating())
+                .reviewCount(dataEntity.getReviewCount())
+                .score(dataEntity.getScore())  // ✅ 종합 점수 추가
+                .build();
+            
+            log.info("통계 조회 완료 - contentId: {}, viewCount: {}, score: {}", 
+                contentId, stats.getViewCount(), stats.getScore());
             return ResponseEntity.ok(stats);
             
         } catch (EntityNotFoundException e) {

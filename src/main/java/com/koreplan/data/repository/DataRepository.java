@@ -50,6 +50,14 @@ public interface DataRepository extends JpaRepository<DataEntity,Long> {
     @Modifying
     @Query("UPDATE DataEntity d SET d.viewCount = d.viewCount + 1 WHERE d.id = :dataId")
     void incrementViewCount(@Param("dataId") Long dataId);
+    //좋아요수 증가 메서드
+    @Modifying
+    @Query("UPDATE DataEntity d SET d.likeCount = d.likeCount + 1 WHERE d.id = :dataId")
+    void incrementLikeCount(@Param("dataId") Long dataId);
+    //종아요수 감소 메서드
+    @Modifying  
+    @Query("UPDATE DataEntity d SET d.likeCount = d.likeCount - 1 WHERE d.id = :dataId")
+    void decrementLikeCount(@Param("dataId") Long dataId);
     
     //프론트의 detail페이지에서 사용하기 편하도록 contentId로 찾을 수 있게 메서드 추가함.
     Optional<DataEntity> findByContentId(String contentId);
@@ -57,4 +65,104 @@ public interface DataRepository extends JpaRepository<DataEntity,Long> {
 	boolean existsByContentId(String contentId);
 	//여러 컨텐츠아이디로 조회하는 기능
 	List<DataEntity> findByContentIdIn(List<String> contentIds);
+	
+
+	//상위 5개 통합점수로 조회
+	List<DataEntity> findTop5ByOrderByScoreDesc();
+	//지역 테마 리스트에서 사용할 메서드
+	List<DataEntity> findByThemeOrderByLikeCountDesc(int themeNum);
+	List<DataEntity> findByThemeOrderByScoreDesc(int themeNum);
+	List<DataEntity> findByThemeOrderByRatingDesc(int themeNum);
+	List<DataEntity> findByThemeOrderByReviewCountDesc(int themeNum);
+	//검색에서 사용할 메서드
+	List<DataEntity> findAllByOrderByScoreDesc();
+	List<DataEntity> findAllByOrderByViewCountDesc();
+	List<DataEntity> findAllByOrderByLikeCountDesc();
+	List<DataEntity>findAllByOrderByRatingDesc();
+	List<DataEntity> findAllByOrderByReviewCountDesc();
+	
+	// ✅ 테마별 + 정렬 + JOIN FETCH 메서드들 추가 (LazyInitializationException 해결)
+	@Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "WHERE d.theme = :theme " +
+           "ORDER BY d.score DESC")
+    List<DataEntity> findByThemeOrderByScoreDescWithRegion(@Param("theme") int theme);
+    
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "WHERE d.theme = :theme " +
+           "ORDER BY d.viewCount DESC")
+    List<DataEntity> findByThemeOrderByViewCountDescWithRegion(@Param("theme") int theme);
+    
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "WHERE d.theme = :theme " +
+           "ORDER BY d.likeCount DESC")
+    List<DataEntity> findByThemeOrderByLikeCountDescWithRegion(@Param("theme") int theme);
+    
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "WHERE d.theme = :theme " +
+           "ORDER BY d.rating DESC")
+    List<DataEntity> findByThemeOrderByRatingDescWithRegion(@Param("theme") int theme);
+    
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "WHERE d.theme = :theme " +
+           "ORDER BY d.reviewCount DESC")
+    List<DataEntity> findByThemeOrderByReviewCountDescWithRegion(@Param("theme") int theme);
+    
+    // ✅ 전체 데이터 정렬 + JOIN FETCH 메서드들 추가
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "ORDER BY d.score DESC")
+    List<DataEntity> findAllByOrderByScoreDescWithRegion();
+    
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "ORDER BY d.viewCount DESC")
+    List<DataEntity> findAllByOrderByViewCountDescWithRegion();
+    
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "ORDER BY d.likeCount DESC")
+    List<DataEntity> findAllByOrderByLikeCountDescWithRegion();
+    
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "ORDER BY d.rating DESC")
+    List<DataEntity> findAllByOrderByRatingDescWithRegion();
+    
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "ORDER BY d.reviewCount DESC")
+    List<DataEntity> findAllByOrderByReviewCountDescWithRegion();
+    
+ // Top5Place용 - 숙박(AC) 제외하고 상위 5개 조회
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "WHERE d.c1Code != 'AC' " +
+           "ORDER BY d.score DESC " +
+           "LIMIT 5")
+    List<DataEntity> findTop5ByOrderByScoreDescExcludingAccommodation();
+
+    // Top5Hotel용 - 숙박(AC)만 상위 5개 조회  
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "WHERE d.c1Code = 'AC' " +
+           "ORDER BY d.score DESC " +
+           "LIMIT 5")
+    List<DataEntity> findTop5ByC1CodeOrderByScoreDesc();
 }
