@@ -46,10 +46,10 @@ public class TravelPlanService {
 		TravelPlanEntity travelPlanEntity = new TravelPlanEntity();
 		travelPlanEntity.setUserEntity(user);
 		travelPlanEntity.setTitle(dto.getTitle());
-//		travelPlanEntity.setStartDate(dto.getStartDate());
-//		travelPlanEntity.setEndDate(dto.getEndDate());
-		travelPlanEntity.setStartDate(LocalDate.parse("2025-06-18"));
-		travelPlanEntity.setEndDate(LocalDate.parse("2025-06-19"));
+		travelPlanEntity.setStartDate(dto.getStartDate());
+		travelPlanEntity.setEndDate(dto.getEndDate());
+//		travelPlanEntity.setStartDate(LocalDate.parse("2025-06-18"));
+//		travelPlanEntity.setEndDate(LocalDate.parse("2025-06-19"));
 		
 		
 		List<TravelDataDto> travelDataDto = dto.getTravelLists();
