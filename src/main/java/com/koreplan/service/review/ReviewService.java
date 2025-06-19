@@ -14,6 +14,7 @@ import com.koreplan.data.entity.DataEntity;
 import com.koreplan.data.repository.DataRepository;
 import com.koreplan.data.service.ScoreCalculationService; // ✅ 추가
 import com.koreplan.dto.review.ReviewDto;
+import com.koreplan.dto.review.ReviewReadDto;
 import com.koreplan.entity.review.ReviewEntity;
 import com.koreplan.repository.review.ReviewRepository;
 import com.koreplan.user.entity.UserEntity;
@@ -140,9 +141,9 @@ public class ReviewService {
      * 특정 데이터의 모든 리뷰 조회 (페이징) - DTO 반환
      */
     @Transactional(readOnly = true)
-    public Page<ReviewDto> getReviewsDtoByDataId(Long dataId, Pageable pageable) {
+    public Page<ReviewReadDto> getReviewsDtoByDataId(Long dataId, Pageable pageable) {
         Page<ReviewEntity> reviewEntities = reviewRepository.findByDataEntityIdOrderByCreatedAtDesc(dataId, pageable);
-        return reviewEntities.map(this::convertToDto);
+        return reviewEntities.map(this::convertToReadDto);
     }
 
     /**
@@ -157,10 +158,10 @@ public class ReviewService {
      * 특정 사용자의 모든 리뷰 조회 - DTO 반환
      */
     @Transactional(readOnly = true)
-    public List<ReviewDto> getReviewsDtoByUserId(int userId) {
+    public List<ReviewReadDto> getReviewsDtoByUserId(int userId) {
         List<ReviewEntity> reviewEntities = reviewRepository.findByUserEntityIdOrderByCreatedAtDesc(userId);
         return reviewEntities.stream()
-                .map(this::convertToDto)
+                .map(this::convertToReadDto)
                 .collect(Collectors.toList());
     }
 
@@ -237,6 +238,26 @@ public class ReviewService {
         dto.setContentId(entity.getDataEntity().getContentId());
         dto.setComment(entity.getContent());
         dto.setRate(entity.getRating());
+        return dto;
+    }
+    private ReviewReadDto convertToReadDto(ReviewEntity review) {
+        ReviewReadDto dto = new ReviewReadDto();
+        dto.setReviewId(review.getId());
+        dto.setContent(review.getContent());
+        dto.setRating(review.getRating());
+        dto.setCreatedAt(review.getCreatedAt());
+        dto.setUpdatedAt(review.getUpdatedAt());
+        
+        // User 정보 조회
+        dto.setUserId(review.getUserEntity().getId());
+        dto.setName(review.getUserEntity().getName());
+        
+        // Data 정보 조회  
+        dto.setDataId(review.getDataEntity().getId());
+        dto.setContentId(review.getDataEntity().getContentId());
+        dto.setDataTitle(review.getDataEntity().getTitle());
+        
+        
         return dto;
     }
 
