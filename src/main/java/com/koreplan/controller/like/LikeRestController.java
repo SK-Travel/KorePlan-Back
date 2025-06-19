@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -110,6 +111,30 @@ public class LikeRestController {
 		return result;
 	}
 
+	
+	@PostMapping("/test/{dataId}/{userId}")
+	public Map<String, Object> likeToggleTest(
+	        @PathVariable(name = "dataId") Long dataId,
+	        @PathVariable(name = "userId") Integer userId) {
+	    
+	    Map<String, Object> result = new HashMap<>();
+	    
+	    try {
+	        boolean likeStatus = likeService.likeToggle(dataId, userId);
+	        result.put("code", 200);
+	        result.put("likeStatus", likeStatus);
+	        result.put("message", likeStatus == true ? "찜 추가됨" : "찜 취소됨");
+	    } catch (Exception e) {
+	        result.put("code", 500);
+	        result.put("error_message", "서버 오류: " + e.getMessage());
+	    }
+	    
+	    return result;
+	}
+	
+
+
+
 	//여러 데이터의 좋아요 상태 확인
 	@PostMapping("/check-status")
 	public Map<String, Object> checkLikeStatus(
@@ -154,3 +179,4 @@ public class LikeRestController {
 		return result;
 	}
 }
+

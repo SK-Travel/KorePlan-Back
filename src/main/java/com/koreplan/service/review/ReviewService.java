@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.koreplan.data.entity.DataEntity;
 import com.koreplan.data.repository.DataRepository;
+import com.koreplan.data.service.ScoreCalculationService; // ✅ 추가
 import com.koreplan.dto.review.ReviewDto;
 import com.koreplan.entity.review.ReviewEntity;
 import com.koreplan.repository.review.ReviewRepository;
@@ -28,10 +30,13 @@ public class ReviewService {
     private final DataRepository dataRepository;
     private final UserRepository userRepository;
     
+    @Autowired
+    private ScoreCalculationService scoreCalculationService; // ✅ 추가
     
     /**
-     * 리뷰 작성
+     * 리뷰 작성 (Score 계산 추가)
      */
+    @Transactional
     public ReviewEntity createReview(Long dataId, int userId, int rating, String content) {
         // 데이터 존재 확인
         DataEntity dataEntity = dataRepository.findById(dataId)
@@ -59,12 +64,16 @@ public class ReviewService {
         // 데이터의 평균 평점 업데이트
         updateDataAverageRating(dataId);
         
+        // ✅ Score 실시간 업데이트
+        scoreCalculationService.updateScore(dataId);
+        
         return savedReview;
     }
 
     /**
-     * 리뷰 수정
+     * 리뷰 수정 (Score 계산 추가)
      */
+    @Transactional
     public ReviewEntity updateReview(Long reviewId, int userId, int rating, String content) {
         ReviewEntity review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 리뷰를 찾을 수 없습니다: " + reviewId));
@@ -88,12 +97,16 @@ public class ReviewService {
         // 데이터의 평균 평점 업데이트
         updateDataAverageRating(review.getDataEntity().getId());
         
+        // ✅ Score 실시간 업데이트
+        scoreCalculationService.updateScore(review.getDataEntity().getId());
+        
         return updatedReview;
     }
 
     /**
-     * 리뷰 삭제
+     * 리뷰 삭제 (Score 계산 추가)
      */
+    @Transactional
     public void deleteReview(Long reviewId, int userId) {
         ReviewEntity review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 리뷰를 찾을 수 없습니다: " + reviewId));
@@ -110,6 +123,9 @@ public class ReviewService {
         
         // 데이터의 평균 평점 업데이트
         updateDataAverageRating(dataId);
+        
+        // ✅ Score 실시간 업데이트
+        scoreCalculationService.updateScore(dataId);
     }
 
     /**

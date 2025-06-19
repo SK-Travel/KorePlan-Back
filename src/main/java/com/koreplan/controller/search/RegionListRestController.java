@@ -1,7 +1,6 @@
 package com.koreplan.controller.search;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
@@ -10,14 +9,15 @@ import org.springframework.web.bind.annotation.*;
 
 import com.koreplan.dto.search.DataResponseDto;
 import com.koreplan.service.search.FilterDataService;
-import com.koreplan.data.dto.DataStatsDto; // 추가
+import com.koreplan.service.search.FilterDataService.SortType; // ✅ 추가
 
 import io.swagger.v3.oas.annotations.Operation;
 
 import com.koreplan.area.entity.RegionCodeEntity;
-import com.koreplan.area.entity.WardCodeEntity;
 import com.koreplan.data.entity.DataEntity;
 import com.koreplan.data.service.SearchDataService;
+
+import com.koreplan.data.repository.DataRepository; // ✅ 추가
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +28,6 @@ import lombok.Data;
 @RequestMapping("/api/region-list")
 @RequiredArgsConstructor
 @Slf4j
-@Transactional(readOnly = true)
 @CrossOrigin(origins = "http://localhost:5173")
 public class RegionListRestController {
 
@@ -36,43 +35,39 @@ public class RegionListRestController {
     private final SearchDataService searchDataService;
 
     /**
-     * 데이터 리스트를 통계 데이터와 함께 DTO로 변환하는 헬퍼 메서드
+     * String을 SortType으로 변환하는 헬퍼 메서드
      */
-    private List<DataResponseDto> convertToDataResponseDtoWithStats(List<DataEntity> dataList) {
-        if (dataList.isEmpty()) {
-            return List.of();
+    private SortType parseSortType(String sortParam) {
+        if (sortParam == null || sortParam.trim().isEmpty()) {
+            return SortType.SCORE; // 기본값
         }
         
-        // 1. contentId 목록 추출
-        List<String> contentIds = dataList.stream()
-            .map(DataEntity::getContentId)
-            .collect(Collectors.toList());
-        
-        // 2. 통계 데이터 일괄 조회
-        Map<String, DataStatsDto> statsMap = searchDataService.getBatchDataStatsByContentIds(contentIds);
-        
-        // 3. Entity + Stats 결합해서 DTO 변환
+        try {
+            return SortType.valueOf(sortParam.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            log.warn("유효하지 않은 정렬 타입: {}. 기본값(SCORE) 사용", sortParam);
+            return SortType.SCORE;
+        }
+    }
+
+    /**
+     * 데이터 리스트를 DTO로 변환하는 헬퍼 메서드 (대폭 간소화)
+     */
+    private List<DataResponseDto> convertToDataResponseDto(List<DataEntity> dataList) {
         return dataList.stream()
-            .map(entity -> {
-                DataStatsDto stats = statsMap.getOrDefault(entity.getContentId(), new DataStatsDto());
-                return DataResponseDto.fromEntityWithStats(
-                    entity,
-                    (long) stats.getViewCount(),
-                    (long) stats.getLikeCount(), 
-                    stats.getRating(),
-                    (long) stats.getReviewCount()
-                );
-            })
+            .map(DataResponseDto::fromEntity)
             .collect(Collectors.toList());
     }
 
     /**
-     * 지역리스트 페이지 초기화 - 헤더의 지역 버튼 클릭 시
+     * 지역리스트 페이지 초기화 - 헤더의 지역 버튼 클릭 시 (정렬 파라미터 추가)
      */
     @GetMapping("/init")
     @Operation(summary = "전국의 관광지(테마)를 가져옴",description ="지역 리스트에서 전국과 관광지가 선택된 상태의 데이터를 가져오는 api")
-    public ResponseEntity<RegionListResponse> initRegionListPage() {
-        log.info("지역리스트 페이지 초기화 요청");
+    public ResponseEntity<RegionListResponse> initRegionListPage(
+            @RequestParam(defaultValue = "SCORE") String sort) { // ✅ 정렬 파라미터 추가
+        
+        log.info("지역리스트 페이지 초기화 요청 - 정렬: {}", sort);
         
         try {
             // 1. 전체 지역 목록 조회 (전국 + 모든 시/도)
@@ -87,30 +82,49 @@ public class RegionListRestController {
             // 2. 테마 목록 
             List<String> themes = List.of("관광지", "숙박", "음식점", "쇼핑", "문화시설", "레포츠", "축제공연행사");
 
-            // 3. 초기 데이터: 전국의 관광지 (통계 데이터 포함)
-            List<DataEntity> initialData = filterDataService.findAllDatasByTheme("관광지");
-            List<DataResponseDto> dataList = convertToDataResponseDtoWithStats(initialData); // 변경된 부분
+            // 3. 정렬 옵션 목록 ✅ 추가
+            List<String> sortOptions = List.of("SCORE", "VIEW_COUNT", "LIKE_COUNT", "RATING", "REVIEW_COUNT");
+
+            // 4. 초기 데이터: 전국의 관광지 (정렬 적용) ✅ 수정
+            SortType sortType = parseSortType(sort);
+            List<DataEntity> initialData = filterDataService.findAllDatasByTheme("관광지", sortType);
+            List<DataResponseDto> dataList = convertToDataResponseDto(initialData);
             
             RegionListResponse response = RegionListResponse.builder()
                     .regions(regionNames)
                     .themes(themes)
+                    .sortOptions(sortOptions) // ✅ 추가
                     .wards(List.of()) // 초기에는 구/군 목록 없음
                     .selectedRegion("전국")
                     .selectedTheme("관광지")
                     .selectedWard("")
+                    .selectedSort(sort) // ✅ 추가
                     .dataList(dataList)
                     .totalCount(dataList.size())
-                    .message("전국의 관광지 " + dataList.size() + "개를 표시합니다.")
+                    .message("전국의 관광지 " + dataList.size() + "개를 " + getSortDisplayName(sortType) + " 순으로 표시합니다.")
                     .showWards(false) // 구/군 선택 UI 표시 여부
                     .build();
 
-            log.info("지역리스트 페이지 초기화 완료. 지역: {}개, 데이터: {}개", regionNames.size(), dataList.size());
+            log.info("지역리스트 페이지 초기화 완료. 지역: {}개, 데이터: {}개, 정렬: {}", regionNames.size(), dataList.size(), sortType);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
             log.error("지역리스트 페이지 초기화 중 오류 발생", e);
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    /**
+     * 정렬 타입의 한글 표시명을 반환하는 헬퍼 메서드
+     */
+    private String getSortDisplayName(SortType sortType) {
+        return switch (sortType) {
+            case SCORE -> "종합점수";
+            case VIEW_COUNT -> "조회수";
+            case LIKE_COUNT -> "찜수";
+            case RATING -> "평점";
+            case REVIEW_COUNT -> "리뷰수";
+        };
     }
 
     /**
@@ -155,24 +169,26 @@ public class RegionListRestController {
     }
 
     /**
-     * 3단계 필터링: 지역 → 구/군 → 테마
+     * 4단계 필터링: 지역 → 구/군 → 테마 → 정렬 ✅ 수정
      */
     @GetMapping("/filter")
     public ResponseEntity<FilterResponse> filterData(
             @RequestParam(defaultValue = "전국") String region,
             @RequestParam(defaultValue = "") List<String> ward,  // List로 변경
-            @RequestParam(defaultValue = "관광지") String theme) {
+            @RequestParam(defaultValue = "관광지") String theme,
+            @RequestParam(defaultValue = "SCORE") String sort) { // ✅ 정렬 파라미터 추가
 
-        log.info("3단계 필터링 요청 - region: {}, ward: {}, theme: {}", region, ward, theme);
+        log.info("4단계 필터링 요청 - region: {}, ward: {}, theme: {}, sort: {}", region, ward, theme, sort);
 
         try {
             List<DataEntity> dataList;
             String resultMessage;
             boolean showWards = false;
 
-            // 1단계: 테마로 전체 데이터 조회
-            dataList = filterDataService.findAllDatasByTheme(theme);
-            log.info("테마 '{}' 전체 데이터: {}개", theme, dataList.size());
+            // 1단계: 테마 + 정렬로 전체 데이터 조회 ✅ 수정
+            SortType sortType = parseSortType(sort);
+            dataList = filterDataService.findAllDatasByTheme(theme, sortType);
+            log.info("테마 '{}' 전체 데이터 ({}): {}개", theme, sortType, dataList.size());
 
             // 2단계: 지역 및 구/군 필터링
             if (!"전국".equals(region)) {
@@ -182,28 +198,29 @@ public class RegionListRestController {
                     // 구/군까지 선택된 경우
                     dataList = filterDataService.filterDatasByRegion(region, ward, dataList);
                     String wardNames = String.join(", ", ward);  // 구/군 이름들 조합
-                    resultMessage = region + " " + wardNames + "의 " + theme + " " + dataList.size() + "개를 표시합니다.";
+                    resultMessage = region + " " + wardNames + "의 " + theme + " " + dataList.size() + "개를 " + getSortDisplayName(sortType) + " 순으로 표시합니다.";
                     log.info("지역 '{}', 구/군 '{}' 필터링 후 데이터: {}개", region, ward, dataList.size());
                 } else {
                     // 지역만 선택된 경우 (구/군은 전체)
                     dataList = filterDataService.filterDatasByRegion(region, List.of(), dataList);  // 빈 List 전달
-                    resultMessage = region + " 전체의 " + theme + " " + dataList.size() + "개를 표시합니다.";
+                    resultMessage = region + " 전체의 " + theme + " " + dataList.size() + "개를 " + getSortDisplayName(sortType) + " 순으로 표시합니다.";
                     log.info("지역 '{}' 전체 필터링 후 데이터: {}개", region, dataList.size());
                 }
             } else {
                 // 전국 선택
                 showWards = false;
-                resultMessage = "전국의 " + theme + " " + dataList.size() + "개를 표시합니다.";
+                resultMessage = "전국의 " + theme + " " + dataList.size() + "개를 " + getSortDisplayName(sortType) + " 순으로 표시합니다.";
                 log.info("전국 데이터 유지: {}개", dataList.size());
             }
 
-            // 3단계: DTO 변환 (통계 데이터 포함) - 변경된 부분
-            List<DataResponseDto> convertedData = convertToDataResponseDtoWithStats(dataList);
+            // 3단계: DTO 변환 (통계 데이터 포함)
+            List<DataResponseDto> convertedData = convertToDataResponseDto(dataList);
 
             FilterResponse response = FilterResponse.builder()
                     .selectedRegion(region)
                     .selectedWard(String.join(", ", ward))  // List를 String으로 변환
                     .selectedTheme(theme)
+                    .selectedSort(sort) // ✅ 추가
                     .dataList(convertedData)
                     .totalCount(convertedData.size())
                     .message(resultMessage)
@@ -211,7 +228,7 @@ public class RegionListRestController {
                     .success(true)
                     .build();
 
-            log.info("필터링 완료 - {}의 {} {} {}개", region, ward.isEmpty() ? "전체" : String.join(", ", ward), theme, convertedData.size());
+            log.info("필터링 완료 - {}의 {} {} {}개 ({})", region, ward.isEmpty() ? "전체" : String.join(", ", ward), theme, convertedData.size(), sortType);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
@@ -219,12 +236,84 @@ public class RegionListRestController {
 
             FilterResponse errorResponse = FilterResponse.builder()
                     .selectedRegion(region)
-                    .selectedWard(ward.isEmpty() ? "" : String.join(", ", ward))  // 에러 응답도 수정
+                    .selectedWard(ward.isEmpty() ? "" : String.join(", ", ward))
                     .selectedTheme(theme)
+                    .selectedSort(sort) // ✅ 추가
                     .dataList(List.of())
                     .totalCount(0)
                     .message("데이터 조회 중 오류가 발생했습니다.")
                     .showWards(false)
+                    .success(false)
+                    .build();
+
+            return ResponseEntity.ok(errorResponse);
+        }
+    }
+
+    /**
+     * ✅ Top5 데이터 조회 API (메인 페이지용)
+     */
+    @GetMapping("/top5")
+    @Operation(summary = "점수 기준 상위 5개 데이터 조회", description = "메인 페이지에서 사용할 전체 데이터 중 점수가 높은 상위 5개 데이터를 반환")
+    public ResponseEntity<Top5Response> getTop5Data() {
+        log.info("메인 페이지 Top5 데이터 조회 요청");
+        
+        try {
+            // SearchDataService의 Top5 메서드 활용
+            
+            List<DataResponseDto> top5DataDto = searchDataService.getAsDto(searchDataService.getTop5PlacesByScore());
+            // DTO 변환
+            
+            
+            Top5Response response = Top5Response.builder()
+                    .dataList(top5DataDto)
+                    .totalCount(top5DataDto.size())
+                    .message("점수 기준 상위 " + top5DataDto.size() + "개 데이터를 조회했습니다.")
+                    .success(true)
+                    .build();
+            
+            log.info("메인 페이지 Top5 데이터 조회 완료: {}개", top5DataDto.size());
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("Top5 데이터 조회 중 오류 발생", e);
+            
+            Top5Response errorResponse = Top5Response.builder()
+                    .dataList(List.of())
+                    .totalCount(0)
+                    .message("Top5 데이터 조회 중 오류가 발생했습니다.")
+                    .success(false)
+                    .build();
+            
+            return ResponseEntity.ok(errorResponse);
+        }
+    }
+    @GetMapping("/top5-hotels")
+    @Operation(summary = "점수 기준 상위 5개 숙박 데이터 조회", description = "메인 페이지에서 사용할 숙박 데이터 중 점수가 높은 상위 5개 데이터를 반환")
+    public ResponseEntity<Top5Response> getTop5Hotels() {
+        log.info("메인 페이지 Top5 숙박 데이터 조회 요청");
+
+        try {
+            // SearchDataService의 Top5 숙박 메서드 활용
+            List<DataResponseDto> top5HotelsDto = searchDataService.getAsDto(searchDataService.getTop5HotelsByScore());
+            
+            Top5Response response = Top5Response.builder()
+                    .dataList(top5HotelsDto)
+                    .totalCount(top5HotelsDto.size())
+                    .message("점수 기준 상위 " + top5HotelsDto.size() + "개 숙박 데이터를 조회했습니다.")
+                    .success(true)
+                    .build();
+
+            log.info("메인 페이지 Top5 숙박 데이터 조회 완료: {}개", top5HotelsDto.size());
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Top5 숙박 데이터 조회 중 오류 발생", e);
+
+            Top5Response errorResponse = Top5Response.builder()
+                    .dataList(List.of())
+                    .totalCount(0)
+                    .message("Top5 숙박 데이터 조회 중 오류가 발생했습니다.")
                     .success(false)
                     .build();
 
@@ -240,17 +329,28 @@ public class RegionListRestController {
         return ResponseEntity.ok("Region List API is running!");
     }
 
-    // ===== Response DTO Classes ===== (기존과 동일)
+    // ===== Response DTO Classes ===== ✅ 수정
+
+    @Data
+    @Builder
+    public static class Top5Response {
+        private List<DataResponseDto> dataList;
+        private Integer totalCount;
+        private String message;
+        private Boolean success;
+    }
 
     @Data
     @Builder
     public static class RegionListResponse {
         private List<String> regions;
         private List<String> themes;
+        private List<String> sortOptions; // ✅ 추가
         private List<String> wards;
         private String selectedRegion;
         private String selectedTheme;
         private String selectedWard;
+        private String selectedSort; // ✅ 추가
         private List<DataResponseDto> dataList;
         private Integer totalCount;
         private String message;
@@ -272,6 +372,7 @@ public class RegionListRestController {
         private String selectedRegion;
         private String selectedWard;
         private String selectedTheme;
+        private String selectedSort; // ✅ 추가
         private List<DataResponseDto> dataList;
         private Integer totalCount;
         private String message;
