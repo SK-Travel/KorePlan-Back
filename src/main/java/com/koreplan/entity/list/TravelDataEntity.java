@@ -1,7 +1,5 @@
 package com.koreplan.entity.list;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.koreplan.data.entity.DataEntity;
 
 import jakarta.persistence.Column;
