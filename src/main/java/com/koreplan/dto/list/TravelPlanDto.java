@@ -3,7 +3,6 @@ package com.koreplan.dto.list;
 import java.time.LocalDate;
 import java.util.List;
 
-import jakarta.persistence.Column;
 import lombok.Data;
 
 @Data
