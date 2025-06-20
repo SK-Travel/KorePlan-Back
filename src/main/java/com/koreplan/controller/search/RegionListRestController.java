@@ -4,25 +4,25 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.*;
-
-import com.koreplan.dto.search.DataResponseDto;
-import com.koreplan.service.search.FilterDataService;
-import com.koreplan.service.search.FilterDataService.SortType; // ✅ 추가
-
-import io.swagger.v3.oas.annotations.Operation;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.koreplan.area.entity.RegionCodeEntity;
 import com.koreplan.data.entity.DataEntity;
 import com.koreplan.data.service.SearchDataService;
+import com.koreplan.dto.search.DataResponseDto;
+import com.koreplan.service.search.FilterDataService;
+import com.koreplan.service.search.FilterDataService.SortType; 
 
-import com.koreplan.data.repository.DataRepository; // ✅ 추가
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.Builder;
 import lombok.Data;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/region-list")
@@ -33,7 +33,7 @@ public class RegionListRestController {
 
     private final FilterDataService filterDataService;
     private final SearchDataService searchDataService;
-
+    
     /**
      * String을 SortType으로 변환하는 헬퍼 메서드
      */
@@ -48,15 +48,6 @@ public class RegionListRestController {
             log.warn("유효하지 않은 정렬 타입: {}. 기본값(SCORE) 사용", sortParam);
             return SortType.SCORE;
         }
-    }
-
-    /**
-     * 데이터 리스트를 DTO로 변환하는 헬퍼 메서드 (대폭 간소화)
-     */
-    private List<DataResponseDto> convertToDataResponseDto(List<DataEntity> dataList) {
-        return dataList.stream()
-            .map(DataResponseDto::fromEntity)
-            .collect(Collectors.toList());
     }
 
     /**
@@ -88,7 +79,7 @@ public class RegionListRestController {
             // 4. 초기 데이터: 전국의 관광지 (정렬 적용) ✅ 수정
             SortType sortType = parseSortType(sort);
             List<DataEntity> initialData = filterDataService.findAllDatasByTheme("관광지", sortType);
-            List<DataResponseDto> dataList = convertToDataResponseDto(initialData);
+            List<DataResponseDto> dataList = filterDataService.convertToDataResponseDto(initialData);
             
             RegionListResponse response = RegionListResponse.builder()
                     .regions(regionNames)
@@ -214,7 +205,7 @@ public class RegionListRestController {
             }
 
             // 3단계: DTO 변환 (통계 데이터 포함)
-            List<DataResponseDto> convertedData = convertToDataResponseDto(dataList);
+            List<DataResponseDto> convertedData = filterDataService.convertToDataResponseDto(dataList);
 
             FilterResponse response = FilterResponse.builder()
                     .selectedRegion(region)
@@ -318,6 +309,28 @@ public class RegionListRestController {
                     .build();
 
             return ResponseEntity.ok(errorResponse);
+        }
+    }
+    //리뷰페이지에서 쓸 단일데이터 뽑아오기.
+    @GetMapping("/{contentId}/one-data")
+    public ResponseEntity<DataResponseDto> getOneData(@PathVariable String contentId) {
+        log.info("=== getOneData 호출됨. contentId: {} ===", contentId);
+        
+        try {
+            // Service에서 DTO까지 변환해서 받아오기
+            DataResponseDto data = searchDataService.getDataResponseDtoByContentId(contentId);
+            
+            if (data == null) {
+                log.warn("데이터를 찾을 수 없습니다. contentId: {}", contentId);
+                return ResponseEntity.notFound().build();
+            }
+            
+            log.info("데이터 조회 성공: {}", data.getTitle());
+            return ResponseEntity.ok(data);
+            
+        } catch (Exception e) {
+            log.error("데이터 조회 중 오류 발생. contentId: {}", contentId, e);
+            return ResponseEntity.internalServerError().build();
         }
     }
 

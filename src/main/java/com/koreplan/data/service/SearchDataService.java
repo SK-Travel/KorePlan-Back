@@ -56,11 +56,20 @@ public class SearchDataService {
 	/**
 	 * 데이터 조회 (contentId로) - 모든 통계 정보 포함
 	 */
+	@Transactional(readOnly = true)
 	public DataEntity getDataWithStatsByContentId(String contentId) {
 		log.info("데이터 조회 요청 - contentId: {}", contentId);
 
 		return dataRepository.findByContentId(contentId)
 				.orElseThrow(() -> new EntityNotFoundException("데이터를 찾을 수 없습니다: " + contentId));
+	}
+	@Transactional(readOnly = true)
+	public DataResponseDto getDataResponseDtoByContentId(String contentId) {
+	    DataEntity entity = getDataWithStatsByContentId(contentId);
+	    if (entity == null) {
+	        return null;
+	    }
+	    return DataResponseDto.fromEntity(entity);  // 트랜잭션 안에서 DTO 변환
 	}
 
 	/**
