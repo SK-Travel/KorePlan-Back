@@ -132,14 +132,14 @@ public class RegionCodeApiService {
     }
     // 주석 처리 해야 함.
 // 	모든데이터 여기서 저장하게(지역코드를 먼저 받아야하므로)
-//    @PostConstruct
-//    public void init() {
-//         saveAllDatas();
-//         categoryService.savecategory();
-//         saveDataService.saveDataService();
-//         saveFestivalService.saveFestival();
-//         
-//    }
+    //@PostConstruct
+    public void init() {
+         saveAllDatas();
+         categoryService.savecategory();
+         saveDataService.saveDataService();
+         //saveFestivalService.saveFestival();
+         
+    }
     public void saveRegionCode(ResponseDto dto) throws Exception {
         List<Item> items = dto.getResponse().getBody().getItems().getItem();
         

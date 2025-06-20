@@ -2,7 +2,9 @@ package com.koreplan.service.review;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -10,6 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.koreplan.data.entity.DataEntity;
 import com.koreplan.data.repository.DataRepository;
+import com.koreplan.data.service.ScoreCalculationService; // ✅ 추가
+import com.koreplan.dto.review.ReviewDto;
+import com.koreplan.dto.review.ReviewReadDto;
 import com.koreplan.entity.review.ReviewEntity;
 import com.koreplan.repository.review.ReviewRepository;
 import com.koreplan.user.entity.UserEntity;
@@ -22,14 +27,17 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public class ReviewService {
-	private final ReviewRepository reviewRepository;
-	private final DataRepository dataRepository;
-	private final UserRepository userRepository;
-	
-	
-	 /**
-     * 리뷰 작성
+    private final ReviewRepository reviewRepository;
+    private final DataRepository dataRepository;
+    private final UserRepository userRepository;
+    
+    @Autowired
+    private ScoreCalculationService scoreCalculationService; // ✅ 추가
+    
+    /**
+     * 리뷰 작성 (Score 계산 추가)
      */
+    @Transactional
     public ReviewEntity createReview(Long dataId, int userId, int rating, String content) {
         // 데이터 존재 확인
         DataEntity dataEntity = dataRepository.findById(dataId)
@@ -57,12 +65,16 @@ public class ReviewService {
         // 데이터의 평균 평점 업데이트
         updateDataAverageRating(dataId);
         
+        // ✅ Score 실시간 업데이트
+        scoreCalculationService.updateScore(dataId);
+        
         return savedReview;
     }
 
     /**
-     * 리뷰 수정
+     * 리뷰 수정 (Score 계산 추가)
      */
+    @Transactional
     public ReviewEntity updateReview(Long reviewId, int userId, int rating, String content) {
         ReviewEntity review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 리뷰를 찾을 수 없습니다: " + reviewId));
@@ -86,12 +98,16 @@ public class ReviewService {
         // 데이터의 평균 평점 업데이트
         updateDataAverageRating(review.getDataEntity().getId());
         
+        // ✅ Score 실시간 업데이트
+        scoreCalculationService.updateScore(review.getDataEntity().getId());
+        
         return updatedReview;
     }
 
     /**
-     * 리뷰 삭제
+     * 리뷰 삭제 (Score 계산 추가)
      */
+    @Transactional
     public void deleteReview(Long reviewId, int userId) {
         ReviewEntity review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 리뷰를 찾을 수 없습니다: " + reviewId));
@@ -108,10 +124,13 @@ public class ReviewService {
         
         // 데이터의 평균 평점 업데이트
         updateDataAverageRating(dataId);
+        
+        // ✅ Score 실시간 업데이트
+        scoreCalculationService.updateScore(dataId);
     }
 
     /**
-     * 특정 데이터의 모든 리뷰 조회 (페이징)
+     * 특정 데이터의 모든 리뷰 조회 (페이징) - Entity 반환
      */
     @Transactional(readOnly = true)
     public Page<ReviewEntity> getReviewsByDataId(Long dataId, Pageable pageable) {
@@ -119,11 +138,31 @@ public class ReviewService {
     }
 
     /**
-     * 특정 사용자의 모든 리뷰 조회
+     * 특정 데이터의 모든 리뷰 조회 (페이징) - DTO 반환
+     */
+    @Transactional(readOnly = true)
+    public Page<ReviewReadDto> getReviewsDtoByDataId(Long dataId, Pageable pageable) {
+        Page<ReviewEntity> reviewEntities = reviewRepository.findByDataEntityIdOrderByCreatedAtDesc(dataId, pageable);
+        return reviewEntities.map(this::convertToReadDto);
+    }
+
+    /**
+     * 특정 사용자의 모든 리뷰 조회 - Entity 반환
      */
     @Transactional(readOnly = true)
     public List<ReviewEntity> getReviewsByUserId(int userId) {
         return reviewRepository.findByUserEntityIdOrderByCreatedAtDesc(userId);
+    }
+
+    /**
+     * 특정 사용자의 모든 리뷰 조회 - DTO 반환
+     */
+    @Transactional(readOnly = true)
+    public List<ReviewReadDto> getReviewsDtoByUserId(int userId) {
+        List<ReviewEntity> reviewEntities = reviewRepository.findByUserEntityIdOrderByCreatedAtDesc(userId);
+        return reviewEntities.stream()
+                .map(this::convertToReadDto)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -190,6 +229,39 @@ public class ReviewService {
     }
 
     /**
+     * Entity를 DTO로 변환
+     */
+    private ReviewDto convertToDto(ReviewEntity entity) {
+        ReviewDto dto = new ReviewDto();
+        dto.setUserid(entity.getUserEntity().getId());
+        dto.setDataid(entity.getDataEntity().getId());
+        dto.setContentId(entity.getDataEntity().getContentId());
+        dto.setComment(entity.getContent());
+        dto.setRate(entity.getRating());
+        return dto;
+    }
+    private ReviewReadDto convertToReadDto(ReviewEntity review) {
+        ReviewReadDto dto = new ReviewReadDto();
+        dto.setReviewId(review.getId());
+        dto.setContent(review.getContent());
+        dto.setRating(review.getRating());
+        dto.setCreatedAt(review.getCreatedAt());
+        dto.setUpdatedAt(review.getUpdatedAt());
+        
+        // User 정보 조회
+        dto.setUserId(review.getUserEntity().getId());
+        dto.setName(review.getUserEntity().getName());
+        
+        // Data 정보 조회  
+        dto.setDataId(review.getDataEntity().getId());
+        dto.setContentId(review.getDataEntity().getContentId());
+        dto.setDataTitle(review.getDataEntity().getTitle());
+        
+        
+        return dto;
+    }
+
+    /**
      * 리뷰 통계 내부 클래스
      */
     public static class ReviewStats {
@@ -222,5 +294,4 @@ public class ReviewService {
         public int getTwoStarCount() { return twoStarCount; }
         public int getOneStarCount() { return oneStarCount; }
     }
-
 }

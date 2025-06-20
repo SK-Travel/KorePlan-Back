@@ -33,7 +33,7 @@ public class SearchFestivalService {
     public List<FestivalEntity> getFestivalByC2Code(String c2Name) {
         try {
             String cat = categoryRepository.findByC2Name(c2Name).getFirst().getC2Code();
-            List<FestivalEntity> results = festivalRepository.findByC2Code(cat);
+            List<FestivalEntity> results = festivalRepository.findByC2CodeOrderByViewCountDesc(cat);
             
             // 연관 엔티티 미리 로딩 (LazyInitializationException 방지)
             for (FestivalEntity festival : results) {
@@ -59,7 +59,7 @@ public class SearchFestivalService {
     public List<FestivalEntity> getFestivalByRegion(String regionName) {
         try {
             Long region = regionCodeRepository.findByName(regionName).getRegioncode();
-            List<FestivalEntity> results = festivalRepository.findByRegionCodeEntity_Regioncode(region);
+            List<FestivalEntity> results = festivalRepository.findByRegionCodeEntity_RegioncodeOrderByViewCountDesc(region);
             
             // 연관 엔티티 미리 로딩
             for (FestivalEntity festival : results) {
@@ -95,7 +95,7 @@ public class SearchFestivalService {
         // 둘 다 비어있으면 전체 조회
         if (regionEmpty && categoryEmpty) {
             log.info("📊 전체 축제 조회");
-            results = festivalRepository.findAll();
+            results = festivalRepository.findAllByOrderByViewCountDesc();
         }
         // 카테고리만 비어있는 경우 (지역만 있음)
         else if (categoryEmpty && !regionEmpty) {
