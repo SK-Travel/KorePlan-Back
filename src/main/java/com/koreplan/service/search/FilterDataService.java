@@ -16,6 +16,7 @@ import com.koreplan.category.entity.CategoryEntity;
 import com.koreplan.category.repository.CategoryRepository;
 import com.koreplan.data.entity.DataEntity;
 import com.koreplan.data.repository.DataRepository;
+import com.koreplan.dto.search.DataResponseDto;
 import com.koreplan.service.theme.ThemeService;
 
 import lombok.RequiredArgsConstructor;
@@ -301,4 +302,14 @@ public class FilterDataService {
         // ThemeService에서 테마 목록을 가져오거나, 하드코딩으로 반환
         return List.of("관광지", "문화시설", "축제공연행사", "여행코스", "레포츠", "숙박", "쇼핑", "음식점");
     }
+
+	/**
+	 * 데이터 리스트를 DTO로 변환하는 헬퍼 메서드 (대폭 간소화)
+	 * @param dataList TODO
+	 */
+	public List<DataResponseDto> convertToDataResponseDto(List<DataEntity> dataList) {
+	    return dataList.stream()
+	        .map(DataResponseDto::fromEntity)
+	        .collect(Collectors.toList());
+	}
 }
