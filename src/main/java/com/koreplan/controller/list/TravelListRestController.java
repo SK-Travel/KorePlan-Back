@@ -38,10 +38,10 @@ public class TravelListRestController {
 
         travelPlanService.addPlan(travelPlanDto);
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("code", 200);
-        response.put("message", "리스트 저장 성공");
-        return ResponseEntity.ok(response);
+        Map<String, Object> result = new HashMap<>();
+        result.put("code", 200);
+        result.put("message", "리스트 저장 성공");
+        return ResponseEntity.ok(result);
     }
 
     // 리스트 조회
