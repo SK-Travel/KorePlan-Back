@@ -3,8 +3,8 @@ package com.koreplan.dto.list;
 import lombok.Data;
 
 @Data
-public class TravelDataDto {
-	private Long id;
+public class AiDataDto {
+	private Long id; // dataId
 	private Integer order;
 	private Integer day;
 }

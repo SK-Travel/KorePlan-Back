@@ -14,7 +14,8 @@ import lombok.Setter;
 @NoArgsConstructor
 public class SendTravelPlanDto {
 
-    private Long id;
+    private Long id; 
+    private int userId;// userId
     private String title;
     private LocalDate startDate;
     private LocalDate endDate;

@@ -10,6 +10,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class SendDataDto {
+	private Long id; // planId
 	private String title;
     private Integer day;
     private Integer order;

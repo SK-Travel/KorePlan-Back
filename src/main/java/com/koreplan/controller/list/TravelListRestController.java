@@ -13,10 +13,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.koreplan.dto.list.DataSearchDto;
 import com.koreplan.dto.list.SendTravelPlanDto;
-import com.koreplan.dto.list.TravelPlanDto;
+import com.koreplan.dto.list.AiPlanDto;
 import com.koreplan.service.list.TravelPlanService;
 
 
@@ -26,17 +28,38 @@ public class TravelListRestController {
 	
 	@Autowired
 	private TravelPlanService travelPlanService;
-	
-//	@Autowired
-//	private UserService userService;
+
+	// keyword로 DataId검색 로직하고 저장하는 것. TravelPlanService -> SearchDataService -> keyword로 dataId, title, RegionName 받아서 보내기
+	@GetMapping("/search")
+	public ResponseEntity<Map<String, Object>> searchData(
+	        @RequestHeader("userId") Integer userId,
+	        @RequestParam("keyword") String keyword) {
+
+	    Map<String, Object> response = new HashMap<>();
+
+	    if (keyword == null || keyword.trim().isEmpty()) {
+	        response.put("code", 400);
+	        response.put("message", "검색어가 비어 있습니다.");
+	        return ResponseEntity.badRequest().body(response);
+	    }
+
+	    List<DataSearchDto> searchResults = travelPlanService.searchDataByKeyword(keyword);
+
+	    response.put("code", 200);
+	    response.put("message", "검색 성공");
+	    response.put("result", searchResults);
+
+	    return ResponseEntity.ok(response);
+	}
+
 	
     // AI로 리스트 추가
     @PostMapping("/add")
     public ResponseEntity<Map<String, Object>> addToMyPlan(
-            @RequestBody TravelPlanDto travelPlanDto,
+            @RequestBody AiPlanDto travelPlanDto,
             @RequestHeader("userId") Integer userId) {
 
-        travelPlanService.addPlan(travelPlanDto);
+        travelPlanService.addAiPlan(travelPlanDto);
 
         Map<String, Object> result = new HashMap<>();
         result.put("code", 200);
@@ -47,9 +70,9 @@ public class TravelListRestController {
     // 나만의 리스트 추가 
     @PostMapping("/add-my-plan")
     public Map<String, Object> addMyOwnPlan(@RequestHeader("userId") Integer userId,
-    		@RequestBody TravelPlanDto travelPlanDto) {
+    		@RequestBody SendTravelPlanDto travelPlanDto) {
     	
-    	travelPlanService.addPlan(travelPlanDto);
+    	travelPlanService.addOwnPlan(travelPlanDto);
     	
     	Map<String, Object> result = new HashMap<>();
     	if (userId != null) {
@@ -62,7 +85,6 @@ public class TravelListRestController {
     	
     	return result;
     }
-    
     
     
 
