@@ -11,8 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.koreplan.data.repository.DataRepository;
 import com.koreplan.data.service.SearchDataService;
-import com.koreplan.dto.list.AiDataDto;
-import com.koreplan.dto.list.AiPlanDto;
+import com.koreplan.dto.list.AIDataDto;
+import com.koreplan.dto.list.AIPlanDto;
 import com.koreplan.dto.list.DataSearchDto;
 import com.koreplan.dto.list.SendDataDto;
 import com.koreplan.dto.list.SendTravelPlanDto;
@@ -52,7 +52,7 @@ public class TravelPlanService {
 	}
     
 	// AI로 plans 전체로 저장(추가)
-	public TravelPlanEntity addAiPlan(AiPlanDto dto) {
+	public TravelPlanEntity addAiPlan(AIPlanDto dto) {
 		Optional<UserEntity> userOpt = userRepository.findById(dto.getUserId());
 	    if (userOpt.isEmpty()) {
 	        throw new RuntimeException("User not found with id: " + dto.getUserId());
@@ -65,13 +65,10 @@ public class TravelPlanService {
 		travelPlanEntity.setTitle(dto.getTitle());
 		travelPlanEntity.setStartDate(dto.getStartDate());
 		travelPlanEntity.setEndDate(dto.getEndDate());
-//		travelPlanEntity.setStartDate(LocalDate.parse("2025-06-18"));
-//		travelPlanEntity.setEndDate(LocalDate.parse("2025-06-19"));
 		
-		
-		List<AiDataDto> travelDataDto = dto.getTravelLists();
-		
-		for (AiDataDto dto2 : travelDataDto) {
+		List<AIDataDto> travelDataDto = dto.getTravelLists();
+	
+		for (AIDataDto dto2 : travelDataDto) {
 			TravelDataEntity travelDataEntity = new TravelDataEntity();
 			
 			travelDataEntity.setDataEntity(dataRepository.findById(dto2.getId()).orElseThrow(() -> new RuntimeException("Data not found with id: " + dto2.getId())));
@@ -160,7 +157,39 @@ public class TravelPlanService {
         
         return sendAllTravelPlanDtoList;
     }
-//	
+	//사용자의 계획 중 하나만 조회(상세,수정페이지)
+	@Transactional(readOnly = true)
+	public SendTravelPlanDto getPlanDto(Integer userId,Long planId) {
+		Optional<TravelPlanEntity> planEntity = travelPlanRepository.findByIdAndUserEntityId(planId, userId);
+		SendTravelPlanDto sendTravelDto = new SendTravelPlanDto();
+	
+		sendTravelDto.setId(planEntity.get().getId());
+        sendTravelDto.setTitle(planEntity.get().getTitle());
+        sendTravelDto.setStartDate(planEntity.get().getStartDate());
+        sendTravelDto.setEndDate(planEntity.get().getEndDate());
+        
+		List<TravelDataEntity> planDataEntity = planEntity.get().getTravelDataList();
+		
+		List<SendDataDto> finalList = new ArrayList<>();
+		
+		for (TravelDataEntity a : planDataEntity) {
+        	SendDataDto sendDataDto = new SendDataDto();
+        	//세팅
+        	sendDataDto.setTitle(a.getDataEntity().getTitle());
+        	sendDataDto.setDay(a.getDay());
+        	sendDataDto.setOrder(a.getOrder());
+        	sendDataDto.setMapx(a.getDataEntity().getMapx());
+        	sendDataDto.setMapy(a.getDataEntity().getMapy());
+        	sendDataDto.setDataId(a.getDataEntity().getId());
+        	sendDataDto.setFirstImage(a.getDataEntity().getFirstimage());
+        	sendDataDto.setContentId(a.getDataEntity().getContentId());
+        	
+        	finalList.add(sendDataDto);
+        }
+		sendTravelDto.setSendDataDto(finalList);
+		
+		return sendTravelDto;
+	}
 	// 삭제
 	public void deleteTravelPlanByPlanId (Long planId) {
 		travelPlanRepository.deleteById(planId);

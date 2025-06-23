@@ -16,9 +16,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.koreplan.dto.list.AIPlanDto;
 import com.koreplan.dto.list.DataSearchDto;
 import com.koreplan.dto.list.SendTravelPlanDto;
-import com.koreplan.dto.list.AiPlanDto;
 import com.koreplan.service.list.TravelPlanService;
 
 
@@ -56,7 +56,7 @@ public class TravelListRestController {
     // AI로 리스트 추가
     @PostMapping("/add")
     public ResponseEntity<Map<String, Object>> addToMyPlan(
-            @RequestBody AiPlanDto travelPlanDto,
+            @RequestBody AIPlanDto travelPlanDto,
             @RequestHeader("userId") Integer userId) {
 
         travelPlanService.addAiPlan(travelPlanDto);
@@ -71,7 +71,7 @@ public class TravelListRestController {
     @PostMapping("/add-my-plan")
     public Map<String, Object> addMyOwnPlan(@RequestHeader("userId") Integer userId,
     		@RequestBody SendTravelPlanDto travelPlanDto) {
-    	
+    
     	travelPlanService.addOwnPlan(travelPlanDto);
     	
     	Map<String, Object> result = new HashMap<>();
@@ -97,6 +97,22 @@ public class TravelListRestController {
         response.put("code", 200);
         response.put("message", "조회 성공");
         response.put("result", sendTravelDto);
+        return ResponseEntity.ok(response);
+    }
+    
+    // 사용자의 특정 계획 조회 (상세/수정 페이지용)
+    @GetMapping("/detail/{planId}")
+    public ResponseEntity<Map<String, Object>> getPlanDetail(
+            @PathVariable Long planId,
+            @RequestHeader("userId") Integer userId) {
+        
+        SendTravelPlanDto planDetail = travelPlanService.getPlanDto(userId, planId);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 200);
+        response.put("message", "상세 조회 성공");
+        response.put("result", planDetail);
+        
         return ResponseEntity.ok(response);
     }
 
