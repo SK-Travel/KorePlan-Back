@@ -1,15 +1,20 @@
 package com.koreplan.data.repository;
 import java.util.List;
 import java.util.Optional;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
 import com.koreplan.area.entity.RegionCodeEntity;
 import com.koreplan.area.entity.WardCodeEntity;
 import com.koreplan.data.entity.DataEntity;
 
 public interface DataRepository extends JpaRepository<DataEntity,Long> {
+	
 	//-----------------카테고리별 데이터 탐색------------//
 	List<DataEntity> findByC1Code(String C1Code);
 	List<DataEntity> findByC2Code(String C2Code);
@@ -39,7 +44,19 @@ public interface DataRepository extends JpaRepository<DataEntity,Long> {
     List<DataEntity> findByRegionCodeEntityAndWardCodeEntityAndThemeIn (@Param("region") RegionCodeEntity region,
         @Param("ward") WardCodeEntity ward,
         @Param("themeIds") List<Integer> themeIds);
-    
+
+    // 새로 추가할 메서드 (score 정렬 + 페이징)
+    @Query("SELECT d FROM DataEntity d " + 
+           "WHERE d.regionCodeEntity = :region " + 
+           "AND d.wardCodeEntity = :ward " + 
+           "AND d.theme IN :themeIds " +
+           "ORDER BY d.score DESC")
+    Page<DataEntity> findByRegionCodeEntityAndWardCodeEntityAndThemeIn(
+        @Param("region") RegionCodeEntity region,
+        @Param("ward") WardCodeEntity ward,
+        @Param("themeIds") List<Integer> themeIds,
+        Pageable pageable
+    );
     // 숙소 하나 추가하기
     // DataEntity
     List<DataEntity> findByRegionCodeEntityAndWardCodeEntityAndC1CodeOrderByViewCountDesc(RegionCodeEntity region, WardCodeEntity ward, String c1Code);

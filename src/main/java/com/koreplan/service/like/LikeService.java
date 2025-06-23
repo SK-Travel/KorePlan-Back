@@ -8,12 +8,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.koreplan.data.entity.DataEntity;
 import com.koreplan.data.repository.DataRepository;
-import com.koreplan.data.service.ScoreCalculationService; 
+import com.koreplan.data.service.ScoreCalculationService;
+import com.koreplan.dto.search.DataResponseDto;
 import com.koreplan.entity.like.LikeEntity;
 import com.koreplan.repository.like.LikeRepository;
 
@@ -77,6 +79,35 @@ public class LikeService {
         return statusMap;
     }
     
+    public List<DataResponseDto> get5RecentLike(int userId) {
+        
+        Pageable pageable = PageRequest.of(0, 5); // 첫 번째 페이지, 5개
+        List<LikeEntity> recentLikes = getUserLike(userId, pageable);
+        
+        return recentLikes.stream()
+                .map(like -> dataRepository.findById(like.getDataId()))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .map(DataResponseDto::fromEntity)
+                .collect(Collectors.toList());
+    }
+ // 사용자의 모든 좋아요한 여행지 데이터 조회 (전체)
+    public List<DataResponseDto> getAllUserLikedPlaces(int userId) {
+        System.out.println("사용자 " + userId + "의 전체 좋아요 목록 조회 시작");
+        
+        // 기존 메서드 활용 - Pageable.unpaged()로 전체 조회
+        List<LikeEntity> allLikes = getUserLike(userId, Pageable.unpaged());
+        
+        List<DataResponseDto> likedPlaces = allLikes.stream()
+                .map(like -> dataRepository.findById(like.getDataId()))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .map(DataResponseDto::fromEntity)
+                .collect(Collectors.toList());
+        
+        System.out.println("조회된 전체 좋아요 여행지 개수: " + likedPlaces.size());
+        return likedPlaces;
+    }
     // 특정 데이터의 좋아요 상태 확인 (단일)
     public boolean isLikedByUser(int userId, Long dataId) {
         return likeRepository.existsByDataIdAndUserId(dataId, userId);
@@ -90,5 +121,8 @@ public class LikeService {
     // 사용자의 총 좋아요 수 조회
     public long getUserLikeCount(int userId) {
         return likeRepository.countByUserId(userId);
+    }
+    public List<LikeEntity> getUserLike(int userId,Pageable pageable){
+    	return likeRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
     }
 }

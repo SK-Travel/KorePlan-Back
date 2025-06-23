@@ -1,7 +1,5 @@
 package com.koreplan.config;
 
-import java.util.List;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -11,9 +9,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.koreplan.common.JwtAuthenticationFilter;
 import com.koreplan.user.oauth2.dto.CustomOAuth2UserService;
@@ -25,142 +20,56 @@ import lombok.RequiredArgsConstructor;
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfig {
-	
-	 private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final CustomOAuth2UserService customOAuth2UserDTO;
-    private final ClientRegistrationRepository clientRegistrationRepository;
+   
+   private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+   private final JwtAuthenticationFilter jwtAuthenticationFilter;
+   private final CustomOAuth2UserService customOAuth2UserDTO;
+   private final ClientRegistrationRepository clientRegistrationRepository;
 
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
-    }
+   @Bean
+   public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+       return config.getAuthenticationManager();
+   }
+   
+   @Bean
+   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+       http
+           .csrf(csrf -> csrf.disable())
+           .sessionManagement(session ->
+               session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+           .authorizeHttpRequests(authz -> authz
+               .requestMatchers(
+                   "/signIn",
+                   "/signup", 
+                   "/oauth2/**",
+                   "/login/oauth2/code/**",
+                   "/public/**",
+                   "/api/**",
+                   "/swagger-ui/**",
+                   "/swagger-ui.html",
+                   "/v3/api-docs/**",
+                   "/swagger-resources/**",
+                   "/webjars/**"
+               )
+               .permitAll()
+               .anyRequest().authenticated()
+           )
+           .exceptionHandling(exception -> 
+               exception.authenticationEntryPoint((request, response, authException) -> {
+                   response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                   response.setContentType("application/json");
+                   response.getWriter().write("{\"error\": \"Unauthorized\"}");
+               })
+           )
+           .oauth2Login(oauth2 -> oauth2
+               .userInfoEndpoint(userInfo -> 
+                   userInfo.userService(customOAuth2UserDTO))
+               .successHandler(oAuth2LoginSuccessHandler)
+           )
+           .formLogin(form -> form.disable());
 
-//    @Bean
-//    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-//
-//        // OAuth2 요청 리졸버 커스터마이징 (구글 계정선택 항상 띄우기 위해 prompt=select_account 추가)
-//        OAuth2AuthorizationRequestResolver customResolver = new OAuth2AuthorizationRequestResolver() {
-//
-//            private final DefaultOAuth2AuthorizationRequestResolver defaultResolver =
-//                    new DefaultOAuth2AuthorizationRequestResolver(clientRegistrationRepository, "/oauth2/authorization");
-//
-//            @Override
-//            public OAuth2AuthorizationRequest resolve(HttpServletRequest request) {
-//                OAuth2AuthorizationRequest authRequest = defaultResolver.resolve(request);
-//                return customizeAuthorizationRequest(authRequest);
-//            }
-//
-//            @Override
-//            public OAuth2AuthorizationRequest resolve(HttpServletRequest request, String clientRegistrationId) {
-//                OAuth2AuthorizationRequest authRequest = defaultResolver.resolve(request, clientRegistrationId);
-//                return customizeAuthorizationRequest(authRequest);
-//            }
-//
-//            private OAuth2AuthorizationRequest customizeAuthorizationRequest(OAuth2AuthorizationRequest request) {
-//                if (request == null) {
-//                    return null;
-//                }
-//                
-//                String registrationId = (String) request.getAttributes().get("registration_id");
-//
-//                OAuth2AuthorizationRequest.Builder builder = OAuth2AuthorizationRequest.from(request);
-//
-//                if ("google".equals(registrationId)) {
-//                    builder.additionalParameters(params -> params.put("prompt", "select_account"));
-//                }
-//                else if ("naver".equals(registrationId)) {
-//                    builder.additionalParameters(params -> {
-//                        params.put("auth_type", "reauthenticate");
-//                        params.put("prompt", "consent");
-//                    });
-//                }
-//
-//                return builder.build();
-//            }
-//        };
-//
-//        http
-//            .csrf().disable()
-//            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-//            .and()
-//            .authorizeHttpRequests()
-//                .requestMatchers(
-//                    "/signIn",
-//                    "/signup",
-//                    "/oauth2/**",
-//                    "/public/**",
-//                    "/api/**"
-//                ).permitAll()
-//                .anyRequest().authenticated()
-//            .and()
-//            .oauth2Login()
-//                .authorizationEndpoint()
-//                    .authorizationRequestResolver(customResolver)
-//                .and()
-//                .userInfoEndpoint()
-//                    .userService(customOAuth2UserDTO)
-//                .and()
-//                .successHandler(oAuth2LoginSuccessHandler)
-//            .and()
-//            .formLogin().disable();
-//
-//        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-//
-//        return http.build();
-//    }
-    
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-            .csrf(csrf -> csrf.disable())
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))  // STATELESS → IF_REQUIRED
-            .authorizeHttpRequests(authz -> authz
-                .requestMatchers(
-                    "/signIn",
-                    "/signup", 
-                    "/oauth2/**",
-                    "/login/oauth2/code/**",
-                    "/public/**",
-                    "/api/**"
-                )
-                .permitAll().requestMatchers("/swagger-ui/**", "/swagger-ui.html").permitAll()
-                .anyRequest().authenticated()
-            )
-            .exceptionHandling(exception -> 
-            exception.authenticationEntryPoint((request, response, authException) -> {
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.setContentType("application/json");
-                response.getWriter().write("{\"error\": \"Unauthorized\"}");
-	            })
-	        )
-            .oauth2Login(oauth2 -> oauth2
-                .userInfoEndpoint(userInfo -> 
-                    userInfo.userService(customOAuth2UserDTO))
-                .successHandler(oAuth2LoginSuccessHandler)
-            )
-            .formLogin(form -> form.disable());
+       http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-        // JWT 필터는 선택적으로 적용 (OAuth2 로그인과 충돌 방지)
-        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-
-        return http.build();
-    }
-    // CORS 설정 추가
-//    @Bean
-//    public CorsConfigurationSource corsConfigurationSource() {
-//        CorsConfiguration config = new CorsConfiguration();
-//        config.setAllowedOrigins(List.of(
-//        	    "http://localhost:5173",     // ✅ 로컬 개발용
-//        	    "https://koreplan.site"      // ✅ 실제 배포 서버용
-//        	));
-//        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-//        config.setAllowedHeaders(List.of("*"));
-//        config.setAllowCredentials(true); // 인증 정보 포함 (ex: JSESSIONID)
-//
-//        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-//        source.registerCorsConfiguration("/**", config);
-//        return source;
-//    }
+       return http.build();
+   }
 }

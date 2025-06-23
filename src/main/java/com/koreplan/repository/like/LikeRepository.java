@@ -2,6 +2,7 @@ package com.koreplan.repository.like;
 
 import java.util.List;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.koreplan.entity.like.LikeEntity;
@@ -16,7 +17,9 @@ public interface LikeRepository extends JpaRepository<LikeEntity, Integer> {
 
     // 특정 사용자의 모든 좋아요 조회
     List<LikeEntity> findByUserId(int userId);
-
+    
+    // 특정 사용자의 최근 5개 좋아요 조회하기.
+    List<LikeEntity> findByUserIdOrderByCreatedAtDesc(int userId, Pageable pageable);
     // 특정 데이터의 좋아요 수 조회
     int countByDataId(Long dataId);
 
