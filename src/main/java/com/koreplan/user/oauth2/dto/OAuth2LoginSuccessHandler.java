@@ -29,6 +29,10 @@ import lombok.RequiredArgsConstructor;
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 	@Value("${app.frontend.redirect-url}")
 	private String frontendRedirectUrl;
+	
+	@Value("${app.frontend.redirect-url-main}")
+	private String oauth2RedirectUrl;
+	
 	@Autowired
 	private EncryptUtils encryptUtils;
 
@@ -105,8 +109,9 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 		System.out.println("sessionId: " + session.getId());
 
 		// 이메일, 이름, 타입, 토큰 쿼리파라미터로 넘김
-		String redirectUrl = String.format("%s?email=%s&name=%s&type=%s&token=%s",
-		        frontendRedirectUrl,
+		String redirectUrl = String.format("%s?userId=%s&email=%s&name=%s&type=%s&token=%s",
+				oauth2RedirectUrl,
+				String.valueOf(savedUser.getId()),
 		        java.net.URLEncoder.encode(email, "UTF-8"),
 		        java.net.URLEncoder.encode(name, "UTF-8"),
 		        redirectType,

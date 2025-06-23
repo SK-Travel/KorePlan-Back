@@ -30,7 +30,7 @@ public class TravelListRestController {
 //	@Autowired
 //	private UserService userService;
 	
-    // 리스트 추가
+    // AI로 리스트 추가
     @PostMapping("/add")
     public ResponseEntity<Map<String, Object>> addToMyPlan(
             @RequestBody TravelPlanDto travelPlanDto,
@@ -43,6 +43,28 @@ public class TravelListRestController {
         result.put("message", "리스트 저장 성공");
         return ResponseEntity.ok(result);
     }
+    
+    // 나만의 리스트 추가 
+    @PostMapping("/add-my-plan")
+    public Map<String, Object> addMyOwnPlan(@RequestHeader("userId") Integer userId,
+    		@RequestBody TravelPlanDto travelPlanDto) {
+    	
+    	travelPlanService.addPlan(travelPlanDto);
+    	
+    	Map<String, Object> result = new HashMap<>();
+    	if (userId != null) {
+    		result.put("code", 200);
+    		result.put("success", "리스트 저장 성공");
+    	} else {
+    		result.put("code" , 500);
+    		result.put("error_message" , "리스트 저장 실패");
+    	}
+    	
+    	return result;
+    }
+    
+    
+    
 
     // 리스트 조회
     @GetMapping("/list")
