@@ -5,11 +5,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -115,8 +117,49 @@ public class TravelListRestController {
         
         return ResponseEntity.ok(response);
     }
+    
+    // 수정 시 일정 하나 삭제
+    @DeleteMapping("/delete/{planId}/{dataId}")
+    public ResponseEntity<?> deleteLocationFromPlan(
+            @PathVariable Long planId,
+            @PathVariable Long dataId,
+            @RequestParam int day,
+            @RequestParam int order,
+            @RequestHeader("userId") Long userId) {
 
-    // 리스트 삭제
+        boolean success = travelPlanService.deleteSingleLocationFromPlan(planId, dataId, day, order, userId);
+        if (success) {
+            return ResponseEntity.ok("삭제 성공");
+        } else {
+            return ResponseEntity.badRequest().body("삭제 실패: 조건 불일치 또는 권한 없음");
+        }
+    }
+    
+    // 리스트 저체 수정
+    @PutMapping("/update/{planId}")
+    public ResponseEntity<?> updateTravelPlan(
+        @PathVariable Long planId,
+        @RequestBody SendTravelPlanDto travelPlanDto,
+        @RequestHeader("userId") int userIdHeader) {
+        // 권한 체크: URL userId와 헤더 userId 일치 확인 (필요 시)
+        if (userIdHeader != travelPlanDto.getUserId()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("권한이 없습니다.");
+        }
+        travelPlanDto.setId(planId);
+
+        boolean updated = travelPlanService.updatePlan(travelPlanDto);
+
+        if (updated) {
+            return ResponseEntity.ok(Map.of("code", 200, "message", "여행 계획 수정 성공"));
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("code", 400, "message", "수정 실패"));
+        }
+        
+    }
+    
+    
+    
+    // 리스트 전체 삭제
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Map<String, Object>> deletePlan(@PathVariable Long id) {
         travelPlanService.deleteTravelPlanByPlanId(id);
