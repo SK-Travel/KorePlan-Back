@@ -19,5 +19,6 @@ public class SendDataDto {
     private Long dataId;
     private String firstImage;
     private String contentId;
+    private String addr;
 	
 }

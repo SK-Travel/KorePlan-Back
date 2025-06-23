@@ -227,32 +227,37 @@ public class SearchDataService {
 	// 리스트 추가 시 검색 로직
 	public List<DataSearchDto> searchByKeywordList(String keyword) {
 	    if (keyword == null || keyword.trim().isEmpty()) return new ArrayList<>();
-	    
-	   
-	    
+
 	    List<DataEntity> allData = getAllDataSortedBy(SortType.SCORE);
-	    
+
 	    List<DataSearchDto> result = new ArrayList<>();
 	    for (DataEntity data : allData) {
-	        boolean matches = false;
-	        if(matchesKeyword(data,keyword)) {
-	        	matches = true;
-	        	DataSearchDto dto = new DataSearchDto();
+	        if(matchesKeyword(data, keyword)) {
+	            DataSearchDto dto = new DataSearchDto();
 	            dto.setId(data.getId());
 	            dto.setTitle(data.getTitle());
-
+	            
+	            // 기존 필드
 	            if (data.getRegionCodeEntity() != null) {
 	                dto.setRegionName(data.getRegionCodeEntity().getName());
 	            }
-	            
 	            if(data.getFirstimage() != null) {
-	            	dto.setFirstimage(data.getFirstimage());
+	                dto.setFirstimage(data.getFirstimage());
 	            }
 	            
+	            // 추가할 필드들
+	            dto.setContentId(data.getContentId());    // ← 추가
+	            dto.setMapx(data.getMapx());              // ← 추가  
+	            dto.setMapy(data.getMapy());              // ← 추가
+	            dto.setAddr1(data.getAddr1());            // ← 추가
 	            
+	            // 필요하면 wardName도 추가
+	            if (data.getWardCodeEntity() != null) {
+	                dto.setWardName(data.getWardCodeEntity().getName());
+	            }
+
 	            result.add(dto);
 	        }
-	        
 	    }
 	    return result;
 	}

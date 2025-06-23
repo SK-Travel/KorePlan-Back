@@ -15,6 +15,8 @@ import com.koreplan.data.service.SearchDataService;
 import com.koreplan.dto.list.AIDataDto;
 import com.koreplan.dto.list.AIPlanDto;
 import com.koreplan.dto.list.DataSearchDto;
+import com.koreplan.dto.list.ReceiveDataDto;
+import com.koreplan.dto.list.ReceiveTravelPlanDto;
 import com.koreplan.dto.list.SendDataDto;
 import com.koreplan.dto.list.SendTravelPlanDto;
 import com.koreplan.entity.list.TravelDataEntity;
@@ -184,7 +186,7 @@ public class TravelPlanService {
         	sendDataDto.setDataId(a.getDataEntity().getId());
         	sendDataDto.setFirstImage(a.getDataEntity().getFirstimage());
         	sendDataDto.setContentId(a.getDataEntity().getContentId());
-        	
+        	sendDataDto.setAddr(a.getDataEntity().getAddr1());
         	finalList.add(sendDataDto);
         }
 		sendTravelDto.setSendDataDto(finalList);
@@ -228,7 +230,7 @@ public class TravelPlanService {
 	
 
 	// 전체 수정 버튼
-	  public boolean updatePlan(SendTravelPlanDto travelPlanDto) {
+	  public boolean updatePlan(ReceiveTravelPlanDto travelPlanDto) {
         // 1. Plan 조회
 	    if (travelPlanDto.getId() == null) {
 	        throw new IllegalArgumentException("수정할 Plan ID가 null입니다.");
@@ -250,8 +252,8 @@ public class TravelPlanService {
         // 4. 기존 여행 데이터 모두 삭제
         travelPlan.getTravelDataList().clear();
         travelPlanRepository.saveAndFlush(travelPlan); // ← 안정성 확보
-        
-        for (SendDataDto dto : travelPlanDto.getSendDataDto()) {
+        List<ReceiveDataDto> datas =travelPlanDto.getTravelLists();
+        for (ReceiveDataDto dto : datas) {
             DataEntity dataEntity = dataRepository.findById(dto.getDataId())
                     .orElseThrow(() -> new RuntimeException("Invalid dataId: " + dto.getDataId()));
 

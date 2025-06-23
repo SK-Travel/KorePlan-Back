@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.koreplan.dto.list.AIPlanDto;
 import com.koreplan.dto.list.DataSearchDto;
+import com.koreplan.dto.list.ReceiveTravelPlanDto;
 import com.koreplan.dto.list.SendTravelPlanDto;
 import com.koreplan.service.list.TravelPlanService;
 
@@ -138,7 +139,7 @@ public class TravelListRestController {
     @PutMapping("/update/{planId}")
     public ResponseEntity<?> updateTravelPlan(
         @PathVariable Long planId,
-        @RequestBody SendTravelPlanDto travelPlanDto,
+        @RequestBody ReceiveTravelPlanDto travelPlanDto,
         @RequestHeader("userId") int userIdHeader) {
         // 권한 체크: URL userId와 헤더 userId 일치 확인 (필요 시)
         if (userIdHeader != travelPlanDto.getUserId()) {
