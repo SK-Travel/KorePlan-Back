@@ -227,27 +227,17 @@ public class SearchDataService {
 	// 리스트 추가 시 검색 로직
 	public List<DataSearchDto> searchByKeywordList(String keyword) {
 	    if (keyword == null || keyword.trim().isEmpty()) return new ArrayList<>();
-
-	    // 입력 키워드 정제 (공백 제거 + 소문자 통일)
-	    String normalizedKeyword = keyword.trim().toLowerCase().replaceAll("\\s+", "");
+	    
+	   
 	    
 	    List<DataEntity> allData = getAllDataSortedBy(SortType.SCORE);
-
+	    
 	    List<DataSearchDto> result = new ArrayList<>();
 	    for (DataEntity data : allData) {
 	        boolean matches = false;
-
-	        // title 비교
-	        if (data.getTitle() != null) {
-	            String normalizedTitle = data.getTitle().toLowerCase().replaceAll("\\s+", "");
-	            if (normalizedTitle.contains(normalizedKeyword)) {
-	                matches = true;
-	            }
-	        }
-	        
-	        // 일치하는 경우만 DTO로 변환해서 추가
-	        if (matches) {
-	            DataSearchDto dto = new DataSearchDto();
+	        if(matchesKeyword(data,keyword)) {
+	        	matches = true;
+	        	DataSearchDto dto = new DataSearchDto();
 	            dto.setId(data.getId());
 	            dto.setTitle(data.getTitle());
 
@@ -262,6 +252,7 @@ public class SearchDataService {
 	            
 	            result.add(dto);
 	        }
+	        
 	    }
 	    return result;
 	}

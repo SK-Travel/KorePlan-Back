@@ -32,7 +32,6 @@ public class TravelListRestController {
 	// keyword로 DataId검색 로직하고 저장하는 것. TravelPlanService -> SearchDataService -> keyword로 dataId, title, RegionName 받아서 보내기
 	@GetMapping("/search")
 	public ResponseEntity<Map<String, Object>> searchData(
-	        @RequestHeader("userId") Integer userId,
 	        @RequestParam("keyword") String keyword) {
 
 	    Map<String, Object> response = new HashMap<>();
