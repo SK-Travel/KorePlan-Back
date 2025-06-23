@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -38,4 +39,11 @@ public class LikeEntity {
 	
 	@Column(name = "createdAt")
 	private LocalDateTime createdAt;
+	
+	@PrePersist
+	protected void onCreate() {
+		if (this.createdAt == null) {
+			this.createdAt = LocalDateTime.now();
+		}
+	}
 }

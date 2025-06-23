@@ -159,7 +159,7 @@ public class ReviewService {
      */
     @Transactional(readOnly = true)
     public List<ReviewReadDto> getReviewsDtoByUserId(int userId) {
-        List<ReviewEntity> reviewEntities = reviewRepository.findByUserEntityIdOrderByCreatedAtDesc(userId);
+        List<ReviewEntity> reviewEntities = reviewRepository.findByUserEntityIdOrderByUpdatedAtDesc(userId);
         return reviewEntities.stream()
                 .map(this::convertToReadDto)
                 .collect(Collectors.toList());
