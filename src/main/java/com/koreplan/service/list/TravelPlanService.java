@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.koreplan.data.entity.DataEntity;
 import com.koreplan.data.repository.DataRepository;
 import com.koreplan.data.service.SearchDataService;
 import com.koreplan.dto.list.AIDataDto;
@@ -190,7 +191,91 @@ public class TravelPlanService {
 		
 		return sendTravelDto;
 	}
-	// 삭제
+	
+	
+	// 수정페이지에서 plan삭제
+	// 특정 장소 삭제 (단일 장소 삭제)
+	public boolean deleteSingleLocationFromPlan(Long planId, Long dataId, int day, int order, Long userId) {
+	    // 1. 해당 Plan 찾기
+	    Optional<TravelPlanEntity> planOpt = travelPlanRepository.findById(planId);
+
+	    if (planOpt.isEmpty()) return false;
+
+	    TravelPlanEntity plan = planOpt.get();
+
+	    // 2. 사용자 권한 확인
+	    if (plan.getUserEntity().getId() != userId) return false;
+
+	    // 3. 데이터 리스트에서 대상 찾기 (for문)
+	    List<TravelDataEntity> dataList = plan.getTravelDataList();
+	    TravelDataEntity toDelete = null;
+
+	    for (TravelDataEntity td : dataList) {
+	        if (td.getDataEntity().getId().equals(dataId) && td.getDay() == day && td.getOrder() == order) {
+	            toDelete = td;
+	            break;
+	        }
+	    }
+
+	    // 4. 못 찾으면 false 반환
+	    if (toDelete == null) return false;
+
+	    // 5. 삭제
+	    dataList.remove(toDelete);
+	    
+	    return true;
+	}
+	
+
+	// 전체 수정 버튼
+	  public boolean updatePlan(SendTravelPlanDto travelPlanDto) {
+        // 1. Plan 조회
+	    if (travelPlanDto.getId() == null) {
+	        throw new IllegalArgumentException("수정할 Plan ID가 null입니다.");
+	    }
+
+	    TravelPlanEntity travelPlan = travelPlanRepository.findById(travelPlanDto.getId())
+	        .orElseThrow(() -> new IllegalArgumentException("해당 ID의 여행 계획이 없습니다."));
+
+        // 2. 사용자 권한 체크 (int -> Long 변환 주의)
+        if (travelPlan.getUserEntity().getId() != travelPlanDto.getUserId()) {
+            return false;
+        }
+
+        // 3. 제목, 날짜 업데이트
+        travelPlan.setTitle(travelPlanDto.getTitle());
+        travelPlan.setStartDate(travelPlanDto.getStartDate());
+        travelPlan.setEndDate(travelPlanDto.getEndDate());
+
+        // 4. 기존 여행 데이터 모두 삭제
+        travelPlan.getTravelDataList().clear();
+        travelPlanRepository.saveAndFlush(travelPlan); // ← 안정성 확보
+        
+        for (SendDataDto dto : travelPlanDto.getSendDataDto()) {
+            DataEntity dataEntity = dataRepository.findById(dto.getDataId())
+                    .orElseThrow(() -> new RuntimeException("Invalid dataId: " + dto.getDataId()));
+
+            TravelDataEntity travelData = TravelDataEntity.builder()
+                    .dataEntity(dataEntity)
+                    .day(dto.getDay())
+                    .order(dto.getOrder())
+                    .travelPlan(travelPlan)
+                    .build();
+
+            travelPlan.getTravelDataList().add(travelData); // ★ add로 넣어주기
+        }
+
+
+        // 6. 저장 (cascade 로 travelData 같이 저장됨)
+        travelPlanRepository.save(travelPlan);
+
+        return true;
+    }
+	
+	
+	
+	
+	// 리스트 자체를 삭제
 	public void deleteTravelPlanByPlanId (Long planId) {
 		travelPlanRepository.deleteById(planId);
 	}

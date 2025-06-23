@@ -1,6 +1,5 @@
 package com.koreplan.openAi.service;
 
-import java.text.Normalizer;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -11,9 +10,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.regex.Pattern;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -106,18 +105,10 @@ public class OpenAiService {
             // 2. GPT용 프롬프트 구성 - 주소 정보 추가 요청
             String gptPrompt = """
             		당신은 여행 일정 플래너입니다. 다음 조건에 맞는 일정(JSON 배열)만 생성하세요: 지역: %s, 여행일 수: %d일, 동행 유형: %s, 선호 장소: %s
-            		
-            		⚠️ 중요: 
-            		- 각 날짜별로 최소 3개 이상의 장소를 추천하세요!
-            		- 각 장소마다 정확한 주소를 포함하세요
-            		- 같은 주소의 장소는 중복 추천하지 마세요
-            		- 1박 2일인 경우: Day 1에 3개, Day 2에 3개 (총 6개)
-            		- 2박 3일인 경우: Day 1에 3개, Day 2에 4개, Day 3에 3개 (총 10개)
-            		- 3박 이상인 경우: 첫날/마지막날 3개씩, 중간 날짜들은 4개씩
-            		
-            		장소 간 이동 거리는 짧게 구성하고, 같은 구(ward) 내의 장소들로 추천하세요.
+            		⚠️ 중요: - 각 날짜별로 최소 3개 이상의 장소를 추천하세요! - 각 장소마다 정확한 주소를 포함하세요 - 같은 주소의 장소는 중복 추천하지 마세요 - 1박 2일인 경우: Day 1에 3개, Day 2에 3개 (총 6개) - 2박 3일인 경우: Day 1에 3개, Day 2에 4개, Day 3에 3개 (총 10개) - 3박 이상인 경우: 첫날/마지막날 3개씩, 중간 날짜들은 4개씩
+            		장소 간 이동 거리는 짧게 구성하고, 같은 구(ward) 내의 장소들로 추천하세요. - 데이터는 추천도를 기준으로 정렬해주세요.
             		응답 형식: JSON 배열만 출력하세요. 코드블록(```json 등)은 절대 포함하지 마세요.
-            		예시: [{"day": 1, "order": 1, "region": "서울특별시", "ward": "종로구", "title": "경복궁", "address": "서울특별시 종로구 세종대로 175"}, {"day": 1, "order": 2, "region": "서울특별시", "ward": "종로구", "title": "북촌한옥마을", "address": "서울특별시 종로구 계동길 37"}, ...]
+            		예시: [{"day": 1, "order": 1, "region": "서울특별시", "ward": "종로구", "title": "경복궁", "address": "서울특별시 종로구 세종대로 175", "mapx": 127.xxx, "mapy":37.xxxx}, ...]
             		""".formatted(region, days, companion, preferences);
 
             int estimatedInputTokens = gptPrompt.length() / 4;
@@ -194,7 +185,8 @@ public class OpenAiService {
 	    if (address == null) return "";
 	    
 	    // "서울특별시 종로구 세종대로 175" → "종로구 세종대로"
-	    Pattern pattern = Pattern.compile("(\\w+구)\\s+(\\w+[로길동])");
+//	    Pattern pattern = Pattern.compile("(\\w+구)\\s+(\\w+[로길동])");
+	    Pattern pattern = Pattern.compile("(\\w+구)\\s+([\\w\\d]+[로길동가])");
 	    Matcher matcher = pattern.matcher(address);
 	    
 	    if (matcher.find()) {
@@ -214,7 +206,8 @@ public class OpenAiService {
 	    
 	    System.out.println("주소 비교: '" + gptAddress + "' -> '" + norm1 + "' vs '" + dbAddr1 + "' -> '" + norm2 + "'");
 	    
-	    boolean result = norm1.equals(norm2);
+//	    boolean result = norm1.equals(norm2);
+	    boolean result = norm1.equals(norm2) || norm1.contains(norm2) || norm2.contains(norm1);
 	    System.out.println("→ 주소 매칭 결과: " + result);
 	    return result;
 	}
@@ -252,6 +245,31 @@ public class OpenAiService {
 	    System.out.println("→ 매칭 실패");
 	    return false;
 	}
+	
+	
+	
+	//// 거리보정
+	private static final Set<String> URBAN_AREAS = Set.of(
+		    "서울특별시", "부산광역시", "대구광역시", "인천광역시",
+		    "광주광역시", "대전광역시", "울산광역시"
+		);
+
+	public boolean isUrbanArea(String regionName) {
+	    return URBAN_AREAS.contains(regionName);
+	}
+
+	// 하버사인 공식으로 두 좌표 간 거리 계산 (km 단위)
+	public static double haversine(double lon1, double lat1, double lon2, double lat2) {
+	    final int R = 6371; // 지구 반경 (km)
+	    double dLat = Math.toRadians(lat2 - lat1);
+	    double dLon = Math.toRadians(lon2 - lon1);
+	    double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+	             + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+	             * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+	    double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+	    return R * c;
+	}
+	
 	
 	// GPT 응답에서 중복 주소 제거
 	private List<JsonNode> removeDuplicateAddresses(JsonNode gptArray) {
@@ -348,7 +366,8 @@ public class OpenAiService {
      * DB에서 region/ward에 해당하는 장소를 보완해서 추가한다.
      */
 	@Transactional(readOnly = true)
-    public List<JsonNode> fillWithDbPlacesOnly(List<String> missingKeys, String region, String ward, List<Integer> themeIds) {
+    public List<JsonNode> fillWithDbPlacesOnly(List<String> missingKeys, String region, String ward, List<Integer> themeIds,
+    		 double baseMapx, double baseMapy) {
         
         RegionCodeEntity regionEntity = regionCodeRepository.findRegionByNameForAI(region).orElse(null);
         if (regionEntity == null) {
@@ -362,15 +381,22 @@ public class OpenAiService {
             return List.of();
         }
 
-        // 필요한 개수만큼 score 높은 순으로 조회
+        // ★ 수정: 넉넉히 3배수 만큼 먼저 score 높은 순 조회
         int needed = missingKeys.size();
+        
+
+        // ★ 수정: 도심/시골 최대거리 분기 적용
+        double maxDistanceKm = isUrbanArea(region) ? 5.0 : 20.0;
+        
+        int fetchSize = needed * 3;
         Pageable pageable = PageRequest.of(0, needed, Sort.by(Sort.Direction.DESC, "score"));
         List<DataEntity> topRatedPlaces = dataRepository.findByRegionCodeEntityAndWardCodeEntityAndThemeIn(
             regionEntity, wardEntity, themeIds, pageable
         ).getContent();
         
         System.out.println("DB에서 조회된 상위 " + needed + "개 장소 (score 높은 순): " + topRatedPlaces.size());
-
+        System.out.println("최대 거리 제한: " + maxDistanceKm + " km");
+        
         // 중복 방지용
         Set<String> usedNames = new HashSet<>();
         List<JsonNode> result = new ArrayList<>();
@@ -379,14 +405,28 @@ public class OpenAiService {
         int added = 0;
         
         for (DataEntity data : topRatedPlaces) {
-            if (added >= needed) break;
+//            if (added >= needed) break;
+//            
+//            String norm = normalize(data.getTitle());
+//            if (usedNames.contains(norm)) continue;
+//            if (data.getC1Code().equals("AC")) continue; // 숙박 제외
+//            
+//            usedNames.add(norm);
             
+            if (added >= needed) break;
+
+            if (data.getC1Code().equals("AC")) continue; // 숙박 제외
+
+            // ★ 수정: 하버사인 거리 계산 후 거리 필터링
+            double dist = haversine(baseMapx, baseMapy, Double.parseDouble(data.getMapx()), Double.parseDouble(data.getMapy()));
+            if (dist > maxDistanceKm) continue;
+
             String norm = normalize(data.getTitle());
             if (usedNames.contains(norm)) continue;
-            if (data.getC1Code().equals("AC")) continue; // 숙박 제외
-            
+
             usedNames.add(norm);
-            
+        	
+        	
             ObjectNode node = mapper.createObjectNode();
             node.put("region", region);
             node.put("ward", ward);
@@ -480,12 +520,17 @@ public class OpenAiService {
             
             System.out.println("보완할 지역: " + region + " " + ward);
 
+            double baseMapx = firstPlace.get("mapx").asDouble();
+            double baseMapy = firstPlace.get("mapy").asDouble();
+            
             // 누락된 자리만큼 DB에서 보완 (score 높은 순)
             dbFilled = fillWithDbPlacesOnly(
                 missingKeys,
                 region,
                 ward,
-                themeIds
+                themeIds,
+                baseMapx,
+                baseMapy
             );
 
             System.out.println("=== DB에서 보완된 장소 개수: " + dbFilled.size() + " ===");
@@ -527,5 +572,5 @@ public class OpenAiService {
         }
         
         return dedupedList;
-    }
+	}
 }

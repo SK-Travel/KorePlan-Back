@@ -4,8 +4,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.koreplan.user.entity.UserEntity;
 
 import jakarta.persistence.CascadeType;
@@ -53,7 +51,7 @@ public class TravelPlanEntity {
     @Column(name = "endDate", nullable = true)
     private LocalDate endDate;
 	
-    @OneToMany(mappedBy="travelPlan", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy="travelPlan", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TravelDataEntity> travelDataList = new ArrayList<>();
     
 }
