@@ -1,5 +1,6 @@
 package com.koreplan.data.service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.koreplan.data.entity.DataEntity;
 import com.koreplan.data.repository.DataRepository;
+import com.koreplan.dto.list.DataSearchDto;
 import com.koreplan.dto.search.DataResponseDto;
 import com.koreplan.entity.theme.ThemeEntity;
 import com.koreplan.repository.theme.ThemeRepository;
@@ -220,4 +222,49 @@ public class SearchDataService {
 
 		return themeRepository.findByContentTypeId(themeCode).map(ThemeEntity::getThemeName).orElse("알 수 없음");
 	}
+	
+	
+	// 리스트 추가 시 검색 로직
+	public List<DataSearchDto> searchByKeywordList(String keyword) {
+	    if (keyword == null || keyword.trim().isEmpty()) return new ArrayList<>();
+
+	    // 입력 키워드 정제 (공백 제거 + 소문자 통일)
+	    String normalizedKeyword = keyword.trim().toLowerCase().replaceAll("\\s+", "");
+	    
+	    List<DataEntity> allData = getAllDataSortedBy(SortType.SCORE);
+
+	    List<DataSearchDto> result = new ArrayList<>();
+	    for (DataEntity data : allData) {
+	        boolean matches = false;
+
+	        // title 비교
+	        if (data.getTitle() != null) {
+	            String normalizedTitle = data.getTitle().toLowerCase().replaceAll("\\s+", "");
+	            if (normalizedTitle.contains(normalizedKeyword)) {
+	                matches = true;
+	            }
+	        }
+	        
+	        // 일치하는 경우만 DTO로 변환해서 추가
+	        if (matches) {
+	            DataSearchDto dto = new DataSearchDto();
+	            dto.setId(data.getId());
+	            dto.setTitle(data.getTitle());
+
+	            if (data.getRegionCodeEntity() != null) {
+	                dto.setRegionName(data.getRegionCodeEntity().getName());
+	            }
+	            
+	            if(data.getFirstimage() != null) {
+	            	dto.setFirstimage(data.getFirstimage());
+	            }
+	            
+	            
+	            result.add(dto);
+	        }
+	    }
+	    return result;
+	}
+	
+	
 }

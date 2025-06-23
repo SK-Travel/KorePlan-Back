@@ -1,7 +1,7 @@
 package com.koreplan.service.list;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -10,10 +10,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.koreplan.data.repository.DataRepository;
-import com.koreplan.dto.list.SendDataDto;
-import com.koreplan.dto.list.SendTravelPlanDto;
+import com.koreplan.data.service.SearchDataService;
 import com.koreplan.dto.list.AIDataDto;
 import com.koreplan.dto.list.AIPlanDto;
+import com.koreplan.dto.list.DataSearchDto;
+import com.koreplan.dto.list.SendDataDto;
+import com.koreplan.dto.list.SendTravelPlanDto;
 import com.koreplan.entity.list.TravelDataEntity;
 import com.koreplan.entity.list.TravelPlanEntity;
 import com.koreplan.repository.list.TravelPlanRepository;
@@ -33,9 +35,24 @@ public class TravelPlanService {
 	@Autowired
 	private DataRepository dataRepository;
 	
+	@Autowired
+	private SearchDataService searchDataService;
 	
-	// plans 전체로 저장(추가)
-	public TravelPlanEntity addPlan(AIPlanDto dto) {
+    // 나만의 리스트에서 검색 로직
+	public List<DataSearchDto> searchDataByKeyword(String keyword) {
+		
+	    if (keyword == null || keyword.trim().isEmpty()) {
+	        return Collections.emptyList();
+	    }
+
+	    String trimmedKeyword = keyword.trim();
+
+	    // searchByKeywordList가 DTO 리스트를 반환하도록 호출
+	    return searchDataService.searchByKeywordList(trimmedKeyword);
+	}
+    
+	// AI로 plans 전체로 저장(추가)
+	public TravelPlanEntity addAiPlan(AIPlanDto dto) {
 		Optional<UserEntity> userOpt = userRepository.findById(dto.getUserId());
 	    if (userOpt.isEmpty()) {
 	        throw new RuntimeException("User not found with id: " + dto.getUserId());
@@ -48,11 +65,9 @@ public class TravelPlanService {
 		travelPlanEntity.setTitle(dto.getTitle());
 		travelPlanEntity.setStartDate(dto.getStartDate());
 		travelPlanEntity.setEndDate(dto.getEndDate());
-
-		
 		
 		List<AIDataDto> travelDataDto = dto.getTravelLists();
-		
+	
 		for (AIDataDto dto2 : travelDataDto) {
 			TravelDataEntity travelDataEntity = new TravelDataEntity();
 			
@@ -65,6 +80,41 @@ public class TravelPlanService {
 		}
 		return travelPlanRepository.save(travelPlanEntity) ;
 	}
+	
+	// 나만의 리스트 만들기
+	public TravelPlanEntity addOwnPlan(SendTravelPlanDto dto) {
+		Optional<UserEntity> userOpt = userRepository.findById(dto.getUserId());
+	    if (userOpt.isEmpty()) {
+	        throw new RuntimeException("User not found with id: " + dto.getUserId());
+	    }
+	    
+	    UserEntity user = userOpt.get();
+		
+		TravelPlanEntity travelPlanEntity = new TravelPlanEntity();
+		travelPlanEntity.setUserEntity(user);
+		travelPlanEntity.setTitle(dto.getTitle());
+		travelPlanEntity.setStartDate(dto.getStartDate());
+		travelPlanEntity.setEndDate(dto.getEndDate());
+//		travelPlanEntity.setStartDate(LocalDate.parse("2025-06-18"));
+//		travelPlanEntity.setEndDate(LocalDate.parse("2025-06-19"));
+		
+		
+		List<SendDataDto> travelDataDto = dto.getSendDataDto();
+		
+		for (SendDataDto dto2 : travelDataDto) {
+			TravelDataEntity travelDataEntity = new TravelDataEntity();
+			
+			travelDataEntity.setDataEntity(dataRepository.findById(dto2.getId()).orElseThrow(() -> new RuntimeException("Data not found with id: " + dto2.getId())));
+			travelDataEntity.setDay(dto2.getDay());
+			travelDataEntity.setOrder(dto2.getOrder());
+			travelDataEntity.setTravelPlan(travelPlanEntity);
+			
+			travelPlanEntity.getTravelDataList().add(travelDataEntity);
+		}
+		return travelPlanRepository.save(travelPlanEntity) ;
+	}
+	
+	
 	
 	
 	// 사용자 계획 조회
