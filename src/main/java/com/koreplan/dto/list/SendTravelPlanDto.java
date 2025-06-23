@@ -20,4 +20,5 @@ public class SendTravelPlanDto {
     private LocalDate startDate;
     private LocalDate endDate;
     private List<SendDataDto> sendDataDto;
+    private List<SendDataDto> deletedDataDto;
 }
