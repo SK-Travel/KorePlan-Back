@@ -20,18 +20,35 @@ public class ScoreCalculationService {
     private DataRepository dataRepository;
     
     /**
-     * Score 계산 공식: (조회수 ÷ 10 × 1) + (찜수 × 3) + (리뷰수 × 2) + (평점 × 4)
+     * Score 계산 공식: (조회수 ÷ 10 × 1) + (찜수 × 3) + (리뷰수 × 2) + (신뢰도 보정된 평점 점수)
      */
     public double calculateScore(int viewCount, int likeCount, int reviewCount, double rating) {
-        double viewScore = (viewCount / 10.0) * 1.0;  // 조회수 ÷ 10 × 1
-        double likeScore = likeCount * 3.0;            // 찜수 × 3  
-        double reviewScore = reviewCount * 2.0;        // 리뷰수 × 3
-        double ratingScore = rating * 4.0;             // 평점 × 3
+        double viewScore = (viewCount / 10.0) * 1.0; // 조회수 ÷ 10 × 1
+        double likeScore = likeCount * 3.0; // 찜수 × 3
+        double reviewScore = reviewCount * 2.0; // 리뷰수 × 2
+        
+        // 신뢰도 보정된 평점 점수
+        double ratingScore = (rating - 2.5) * 4.0 * getReviewCountWeight(reviewCount);
         
         double totalScore = viewScore + likeScore + reviewScore + ratingScore;
         
         // 소수점 1자리로 반올림
         return Math.round(totalScore * 10.0) / 10.0;
+    }
+
+    /**
+     * 리뷰 개수에 따른 가중치 계산
+     */
+    private double getReviewCountWeight(int reviewCount) {
+        if (reviewCount >= 100) {
+            return 1.0;     // 100개 이상: 가중치 그대로
+        } else if (reviewCount >= 50) {
+            return 0.8;     // 50-99개: 80%
+        } else if (reviewCount >= 20) {
+            return 0.6;     // 20-49개: 60%
+        } else {
+            return 0.4;     // 20개 미만: 40%
+        }
     }
     
     /**

@@ -8,14 +8,15 @@ import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.koreplan.dto.search.DataResponseDto;
 import com.koreplan.service.like.LikeService;
 import com.koreplan.user.service.UserService;
 
@@ -178,5 +179,95 @@ public class LikeRestController {
 
 		return result;
 	}
+	/**
+     * 최근 찜한 여행지 5개 조회
+     */
+    @GetMapping("/recent-liked-places")
+    @Transactional(readOnly = true)
+    public Map<String, Object> getRecentLikedPlaces(
+            HttpSession session,
+            @AuthenticationPrincipal OAuth2User oAuthUser) {
+        
+        System.out.println("=== 최근 찜한 여행지 5개 조회 ===");
+        
+        // 사용자 인증
+        Integer userId = (Integer) session.getAttribute("userId");
+        if (userId == null && oAuthUser != null) {
+            String email = oAuthUser.getAttribute("email");
+            userId = userService.getUserIdByEmail(email);
+        }
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        if (userId == null) {
+            result.put("code", 401);
+            result.put("error_message", "로그인되지 않았습니다");
+            return result;
+        }
+        
+        try {
+            List<DataResponseDto> recentLikedPlaces = likeService.get5RecentLike(userId);
+            
+            result.put("code", 200);
+            result.put("recentLikedPlaces", recentLikedPlaces);
+            result.put("count", recentLikedPlaces.size());
+            result.put("message", "최근 찜한 여행지 조회 성공");
+            
+            System.out.println("사용자 " + userId + "의 최근 찜한 여행지: " + recentLikedPlaces.size() + "개");
+            
+        } catch (Exception e) {
+            System.err.println("최근 찜한 여행지 조회 오류: " + e.getMessage());
+            e.printStackTrace();
+            result.put("code", 500);
+            result.put("error_message", "최근 찜한 여행지 조회 중 오류 발생");
+        }
+        
+        return result;
+    }
+    /**
+     * 사용자의 모든 찜한 여행지 상세 정보 조회 (전체)
+     */
+    @GetMapping("/all-liked-places")
+    @Transactional(readOnly = true)
+    public Map<String, Object> getAllLikedPlaces(
+            HttpSession session,
+            @AuthenticationPrincipal OAuth2User oAuthUser) {
+        
+        System.out.println("=== 전체 찜한 여행지 조회 ===");
+        
+        // 사용자 인증
+        Integer userId = (Integer) session.getAttribute("userId");
+        if (userId == null && oAuthUser != null) {
+            String email = oAuthUser.getAttribute("email");
+            userId = userService.getUserIdByEmail(email);
+        }
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        if (userId == null) {
+            result.put("code", 401);
+            result.put("error_message", "로그인되지 않았습니다");
+            return result;
+        }
+        
+        try {
+            List<DataResponseDto> allLikedPlaces = likeService.getAllUserLikedPlaces(userId);
+            
+            result.put("code", 200);
+            result.put("allLikedPlaces", allLikedPlaces);
+            result.put("count", allLikedPlaces.size());
+            result.put("message", "전체 찜한 여행지 조회 성공");
+            
+            System.out.println("사용자 " + userId + "의 전체 찜한 여행지: " + allLikedPlaces.size() + "개");
+            
+        } catch (Exception e) {
+            System.err.println("전체 찜한 여행지 조회 오류: " + e.getMessage());
+            e.printStackTrace();
+            result.put("code", 500);
+            result.put("error_message", "전체 찜한 여행지 조회 중 오류 발생");
+        }
+        
+        return result;
+    }
 }
 

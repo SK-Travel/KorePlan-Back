@@ -105,12 +105,13 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 		System.out.println("sessionId: " + session.getId());
 
 		// 이메일, 이름, 타입, 토큰 쿼리파라미터로 넘김
-		String redirectUrl = String.format("%s?email=%s&name=%s&type=%s&token=%s",
+		String redirectUrl = String.format("%s?email=%s&name=%s&type=%s&token=%s&userId=%s",
 		        frontendRedirectUrl,
 		        java.net.URLEncoder.encode(email, "UTF-8"),
 		        java.net.URLEncoder.encode(name, "UTF-8"),
 		        redirectType,
-		        token);
+		        token,
+		        savedUser.getId()); 
 
 		response.setCharacterEncoding("UTF-8");
 		response.sendRedirect(redirectUrl);

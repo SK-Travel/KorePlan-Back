@@ -31,6 +31,7 @@ public interface ReviewRepository extends JpaRepository<ReviewEntity, Long> {
      * 특정 사용자의 모든 리뷰 조회
      */
     List<ReviewEntity> findByUserEntityIdOrderByCreatedAtDesc(int userId);
+    List<ReviewEntity> findByUserEntityIdOrderByUpdatedAtDesc(int userId);
     
     /**
      * 사용자가 특정 데이터에 작성한 리뷰 조회 (중복 리뷰 방지용)
@@ -117,4 +118,5 @@ public interface ReviewRepository extends JpaRepository<ReviewEntity, Long> {
     @Query("SELECT r FROM ReviewEntity r WHERE r.createdAt BETWEEN :startDate AND :endDate ORDER BY r.createdAt DESC")
     List<ReviewEntity> findByCreatedAtBetween(@Param("startDate") java.time.LocalDateTime startDate, 
                                              @Param("endDate") java.time.LocalDateTime endDate);
+
 }
