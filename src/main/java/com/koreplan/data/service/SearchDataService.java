@@ -228,38 +228,34 @@ public class SearchDataService {
 	public List<DataSearchDto> searchByKeywordList(String keyword) {
 	    if (keyword == null || keyword.trim().isEmpty()) return new ArrayList<>();
 
-	    // 입력 키워드 정제 (공백 제거 + 소문자 통일)
-	    String normalizedKeyword = keyword.trim().toLowerCase().replaceAll("\\s+", "");
-	    
 	    List<DataEntity> allData = getAllDataSortedBy(SortType.SCORE);
 
 	    List<DataSearchDto> result = new ArrayList<>();
 	    for (DataEntity data : allData) {
-	        boolean matches = false;
-
-	        // title 비교
-	        if (data.getTitle() != null) {
-	            String normalizedTitle = data.getTitle().toLowerCase().replaceAll("\\s+", "");
-	            if (normalizedTitle.contains(normalizedKeyword)) {
-	                matches = true;
-	            }
-	        }
-	        
-	        // 일치하는 경우만 DTO로 변환해서 추가
-	        if (matches) {
+	        if(matchesKeyword(data, keyword)) {
 	            DataSearchDto dto = new DataSearchDto();
 	            dto.setId(data.getId());
 	            dto.setTitle(data.getTitle());
-
+	            
+	            // 기존 필드
 	            if (data.getRegionCodeEntity() != null) {
 	                dto.setRegionName(data.getRegionCodeEntity().getName());
 	            }
-	            
 	            if(data.getFirstimage() != null) {
-	            	dto.setFirstimage(data.getFirstimage());
+	                dto.setFirstimage(data.getFirstimage());
 	            }
 	            
+	            // 추가할 필드들
+	            dto.setContentId(data.getContentId());    // ← 추가
+	            dto.setMapx(data.getMapx());              // ← 추가  
+	            dto.setMapy(data.getMapy());              // ← 추가
+	            dto.setAddr1(data.getAddr1());            // ← 추가
 	            
+	            // 필요하면 wardName도 추가
+	            if (data.getWardCodeEntity() != null) {
+	                dto.setWardName(data.getWardCodeEntity().getName());
+	            }
+
 	            result.add(dto);
 	        }
 	    }

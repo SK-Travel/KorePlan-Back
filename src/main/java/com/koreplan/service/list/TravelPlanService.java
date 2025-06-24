@@ -15,6 +15,8 @@ import com.koreplan.data.service.SearchDataService;
 import com.koreplan.dto.list.AIDataDto;
 import com.koreplan.dto.list.AIPlanDto;
 import com.koreplan.dto.list.DataSearchDto;
+import com.koreplan.dto.list.ReceiveDataDto;
+import com.koreplan.dto.list.ReceiveTravelPlanDto;
 import com.koreplan.dto.list.SendDataDto;
 import com.koreplan.dto.list.SendTravelPlanDto;
 import com.koreplan.entity.list.TravelDataEntity;
@@ -83,7 +85,7 @@ public class TravelPlanService {
 	}
 	
 	// 나만의 리스트 만들기
-	public TravelPlanEntity addOwnPlan(SendTravelPlanDto dto) {
+	public TravelPlanEntity addOwnPlan(ReceiveTravelPlanDto dto) {
 		Optional<UserEntity> userOpt = userRepository.findById(dto.getUserId());
 	    if (userOpt.isEmpty()) {
 	        throw new RuntimeException("User not found with id: " + dto.getUserId());
@@ -96,16 +98,13 @@ public class TravelPlanService {
 		travelPlanEntity.setTitle(dto.getTitle());
 		travelPlanEntity.setStartDate(dto.getStartDate());
 		travelPlanEntity.setEndDate(dto.getEndDate());
-//		travelPlanEntity.setStartDate(LocalDate.parse("2025-06-18"));
-//		travelPlanEntity.setEndDate(LocalDate.parse("2025-06-19"));
 		
+		List<ReceiveDataDto> travelDataDto = dto.getTravelLists();
 		
-		List<SendDataDto> travelDataDto = dto.getSendDataDto();
-		
-		for (SendDataDto dto2 : travelDataDto) {
+		for (ReceiveDataDto dto2 : travelDataDto) {
 			TravelDataEntity travelDataEntity = new TravelDataEntity();
 			
-			travelDataEntity.setDataEntity(dataRepository.findById(dto2.getId()).orElseThrow(() -> new RuntimeException("Data not found with id: " + dto2.getId())));
+			travelDataEntity.setDataEntity(dataRepository.findById(dto2.getDataId()).orElseThrow(() -> new RuntimeException("Data not found with id: " + dto2.getDataId())));
 			travelDataEntity.setDay(dto2.getDay());
 			travelDataEntity.setOrder(dto2.getOrder());
 			travelDataEntity.setTravelPlan(travelPlanEntity);
@@ -184,7 +183,7 @@ public class TravelPlanService {
         	sendDataDto.setDataId(a.getDataEntity().getId());
         	sendDataDto.setFirstImage(a.getDataEntity().getFirstimage());
         	sendDataDto.setContentId(a.getDataEntity().getContentId());
-        	
+        	sendDataDto.setAddr(a.getDataEntity().getAddr1());
         	finalList.add(sendDataDto);
         }
 		sendTravelDto.setSendDataDto(finalList);
@@ -228,7 +227,7 @@ public class TravelPlanService {
 	
 
 	// 전체 수정 버튼
-	  public boolean updatePlan(SendTravelPlanDto travelPlanDto) {
+	  public boolean updatePlan(ReceiveTravelPlanDto travelPlanDto) {
         // 1. Plan 조회
 	    if (travelPlanDto.getId() == null) {
 	        throw new IllegalArgumentException("수정할 Plan ID가 null입니다.");
@@ -250,8 +249,8 @@ public class TravelPlanService {
         // 4. 기존 여행 데이터 모두 삭제
         travelPlan.getTravelDataList().clear();
         travelPlanRepository.saveAndFlush(travelPlan); // ← 안정성 확보
-        
-        for (SendDataDto dto : travelPlanDto.getSendDataDto()) {
+        List<ReceiveDataDto> datas =travelPlanDto.getTravelLists();
+        for (ReceiveDataDto dto : datas) {
             DataEntity dataEntity = dataRepository.findById(dto.getDataId())
                     .orElseThrow(() -> new RuntimeException("Invalid dataId: " + dto.getDataId()));
 
