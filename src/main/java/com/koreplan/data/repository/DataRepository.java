@@ -182,4 +182,5 @@ public interface DataRepository extends JpaRepository<DataEntity,Long> {
            "ORDER BY d.score DESC " +
            "LIMIT 5")
     List<DataEntity> findTop5ByC1CodeOrderByScoreDesc();
+    
 }
