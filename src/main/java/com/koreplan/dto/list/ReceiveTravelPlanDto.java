@@ -16,6 +16,7 @@ public class ReceiveTravelPlanDto {
     private LocalDate startDate;  
     private LocalDate endDate;
     private List<ReceiveDataDto> travelLists;
+	
 }
 
 

@@ -85,7 +85,7 @@ public class TravelPlanService {
 	}
 	
 	// 나만의 리스트 만들기
-	public TravelPlanEntity addOwnPlan(SendTravelPlanDto dto) {
+	public TravelPlanEntity addOwnPlan(ReceiveTravelPlanDto dto) {
 		Optional<UserEntity> userOpt = userRepository.findById(dto.getUserId());
 	    if (userOpt.isEmpty()) {
 	        throw new RuntimeException("User not found with id: " + dto.getUserId());
@@ -98,16 +98,13 @@ public class TravelPlanService {
 		travelPlanEntity.setTitle(dto.getTitle());
 		travelPlanEntity.setStartDate(dto.getStartDate());
 		travelPlanEntity.setEndDate(dto.getEndDate());
-//		travelPlanEntity.setStartDate(LocalDate.parse("2025-06-18"));
-//		travelPlanEntity.setEndDate(LocalDate.parse("2025-06-19"));
 		
+		List<ReceiveDataDto> travelDataDto = dto.getTravelLists();
 		
-		List<SendDataDto> travelDataDto = dto.getSendDataDto();
-		
-		for (SendDataDto dto2 : travelDataDto) {
+		for (ReceiveDataDto dto2 : travelDataDto) {
 			TravelDataEntity travelDataEntity = new TravelDataEntity();
 			
-			travelDataEntity.setDataEntity(dataRepository.findById(dto2.getId()).orElseThrow(() -> new RuntimeException("Data not found with id: " + dto2.getId())));
+			travelDataEntity.setDataEntity(dataRepository.findById(dto2.getDataId()).orElseThrow(() -> new RuntimeException("Data not found with id: " + dto2.getDataId())));
 			travelDataEntity.setDay(dto2.getDay());
 			travelDataEntity.setOrder(dto2.getOrder());
 			travelDataEntity.setTravelPlan(travelPlanEntity);
