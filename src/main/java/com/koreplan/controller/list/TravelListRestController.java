@@ -72,7 +72,7 @@ public class TravelListRestController {
     // 나만의 리스트 추가 
     @PostMapping("/add-my-plan")
     public Map<String, Object> addMyOwnPlan(@RequestHeader("userId") Integer userId,
-    		@RequestBody SendTravelPlanDto travelPlanDto) {
+    		@RequestBody ReceiveTravelPlanDto travelPlanDto) {
     
     	travelPlanService.addOwnPlan(travelPlanDto);
     	
