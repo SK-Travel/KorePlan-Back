@@ -57,6 +57,16 @@ public interface DataRepository extends JpaRepository<DataEntity,Long> {
         @Param("themeIds") List<Integer> themeIds,
         Pageable pageable
     );
+    
+    @Query("SELECT d FROM DataEntity d " +
+    	       "WHERE d.regionCodeEntity = :region " +
+    	       "AND d.theme IN :themeIds " +
+    	       "ORDER BY d.score DESC")
+    	Page<DataEntity> findByRegionCodeEntityAndThemeIn(
+    	    @Param("region") RegionCodeEntity region,
+    	    @Param("themeIds") List<Integer> themeIds,
+    	    Pageable pageable
+    	);
     // 숙소 하나 추가하기
     // DataEntity
     List<DataEntity> findByRegionCodeEntityAndWardCodeEntityAndC1CodeOrderByViewCountDesc(RegionCodeEntity region, WardCodeEntity ward, String c1Code);
@@ -182,4 +192,5 @@ public interface DataRepository extends JpaRepository<DataEntity,Long> {
            "ORDER BY d.score DESC " +
            "LIMIT 5")
     List<DataEntity> findTop5ByC1CodeOrderByScoreDesc();
+    
 }
