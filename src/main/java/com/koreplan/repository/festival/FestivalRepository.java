@@ -33,4 +33,8 @@ public interface FestivalRepository extends JpaRepository<FestivalEntity, String
     
     // 조회수 기준 내림차순 정렬
      List<FestivalEntity> findAllByOrderByViewCountDesc();
+     
+  // 현재 진행 중이거나 진행 예정인 축제들
+     @Query("SELECT f FROM FestivalEntity f WHERE f.eventEndDate >= CURRENT_DATE ORDER BY f.eventStartDate")
+     List<FestivalEntity> findCurrentAndUpcomingFestivals();
 }

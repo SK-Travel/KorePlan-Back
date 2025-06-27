@@ -1,6 +1,8 @@
 package com.koreplan.dto.search;
 
 import com.koreplan.data.entity.DataEntity;
+import com.koreplan.entity.festival.FestivalEntity;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -72,6 +74,35 @@ public class DataResponseDto {
                 .reviewCount(entity.getReviewCount())
                 .rating(entity.getRating())
                 .score(entity.getScore())
+                .build();
+    }
+    public static DataResponseDto fromEntity(FestivalEntity entity) {
+        return DataResponseDto.builder()
+                .id(Long.parseLong(entity.getContentId()))
+                .contentId(entity.getContentId())
+                .addr1(entity.getAddr1())
+                .addr2(entity.getAddr2())
+                .mapx(entity.getMapx())
+                .mapy(entity.getMapy())
+                .title(entity.getTitle())
+                .c1Code(entity.getC1Code())
+                .c2Code(entity.getC2Code())
+                .c3Code(entity.getC3Code())
+                .firstimage(entity.getFirstimage())
+                .firstimage2(entity.getFirstimage2())
+                .tel("없음")
+                .theme(15)
+                // 연관관계 엔티티에서 정보 추출
+                .regionName(entity.getRegionCodeEntity() != null ?
+                        entity.getRegionCodeEntity().getName() : null)
+                .regionCode(entity.getRegionCodeEntity() != null ?
+                        entity.getRegionCodeEntity().getRegioncode() : null)
+                .wardName(entity.getWardCodeEntity() != null ?
+                        entity.getWardCodeEntity().getName() : null)
+                .wardCode(entity.getWardCodeEntity() != null ?
+                        entity.getWardCodeEntity().getWardcode() : null)
+                // 통계 정보 가져오기
+                .viewCount(entity.getViewCount())
                 .build();
     }
 }
