@@ -208,6 +208,59 @@ public class SearchDataService {
 
 		return new PageImpl<>(pagedResults, pageable, searchResults.size());
 	}
+	/**
+	 * 페이징을 지원하는 통합 검색 기능 (DTO 변환 포함)
+	 *
+	 * @param keyword 검색 키워드
+	 * @param sortType 정렬 타입
+	 * @param pageable 페이징 정보
+	 * @return 페이징된 검색 결과 (DTO)
+	 */
+	public Page<DataResponseDto> searchByKeywordWithPagingDto(String keyword, SortType sortType, Pageable pageable) {
+	    log.info("페이징 통합 검색 시작 (DTO) - 키워드: '{}', 정렬: {}, 페이지: {}", keyword, sortType, pageable.getPageNumber());
+
+	    // Entity 검색
+	    Page<DataEntity> entityPage = searchByKeywordWithPaging(keyword, sortType, pageable);
+
+	    // Entity를 DTO로 변환
+	    Page<DataResponseDto> dtoPage = entityPage.map(entity -> {
+	        DataResponseDto dto = new DataResponseDto();
+	        dto.setId(entity.getId());
+	        dto.setContentId(entity.getContentId());
+	        dto.setTitle(entity.getTitle());
+	        dto.setAddr1(entity.getAddr1());
+	        dto.setAddr2(entity.getAddr2());
+	        dto.setMapy(entity.getMapy());
+	        dto.setMapx(entity.getMapx());
+	        dto.setFirstimage(entity.getFirstimage());
+	        dto.setFirstimage2(entity.getFirstimage2());
+	        dto.setTel(entity.getTel());
+	        dto.setTheme(entity.getTheme());
+	        
+	        // 지역 정보 설정
+	        if (entity.getRegionCodeEntity() != null) {
+	            dto.setRegionName(entity.getRegionCodeEntity().getName());
+	            dto.setRegionCode(entity.getRegionCodeEntity().getRegioncode());
+	        }
+	        
+	        if (entity.getWardCodeEntity() != null) {
+	            dto.setWardName(entity.getWardCodeEntity().getName());
+	            dto.setWardCode(entity.getWardCodeEntity().getWardcode());
+	        }
+	        
+	        dto.setViewCount(entity.getViewCount());
+	        dto.setLikeCount(entity.getLikeCount());
+	        dto.setReviewCount(entity.getReviewCount());
+	        dto.setRating(entity.getRating());
+	        dto.setScore(entity.getScore());
+	        
+	        return dto;
+	    });
+
+	    log.info("페이징 검색 완료 (DTO) - 전체: {}개, 페이지 결과: {}개", entityPage.getTotalElements(), dtoPage.getContent().size());
+	    
+	    return dtoPage;
+	}
 
 	/**
 	 * AI 필터링 Data의 Theme -> Theme의 ContentTypeId -> Theme의 name 가져오는 로직
