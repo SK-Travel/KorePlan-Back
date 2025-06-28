@@ -3,6 +3,7 @@ package com.koreplan.controller.search;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -162,84 +163,65 @@ public class RegionListRestController {
     /**
      * 4단계 필터링: 지역 → 구/군 → 테마 → 정렬 ✅ 수정
      */
+    /**
+     * 4단계 필터링: 지역 → 구/군 → 테마 → 정렬 + 페이징 ✅ 수정
+     */
     @GetMapping("/filter")
     public ResponseEntity<FilterResponse> filterData(
             @RequestParam(defaultValue = "전국") String region,
-            @RequestParam(defaultValue = "") List<String> ward,  // List로 변경
+            @RequestParam(defaultValue = "") List<String> ward,
             @RequestParam(defaultValue = "관광지") String theme,
-            @RequestParam(defaultValue = "SCORE") String sort) { // ✅ 정렬 파라미터 추가
+            @RequestParam(defaultValue = "SCORE") String sort,
+            @RequestParam(defaultValue = "0") int page,        // 페이지 번호 (0부터 시작)
+            @RequestParam(defaultValue = "12") int size) {     // 페이지 크기
 
-        log.info("4단계 필터링 요청 - region: {}, ward: {}, theme: {}, sort: {}", region, ward, theme, sort);
+        log.info("필터링 + 페이징 요청 - region: {}, ward: {}, theme: {}, sort: {}, page: {}, size: {}", 
+                 region, ward, theme, sort, page, size);
 
         try {
-            List<DataEntity> dataList;
-            String resultMessage;
-            boolean showWards = false;
-
-            // 1단계: 테마 + 정렬로 전체 데이터 조회 ✅ 수정
             SortType sortType = parseSortType(sort);
-            dataList = filterDataService.findAllDatasByTheme(theme, sortType);
-            log.info("테마 '{}' 전체 데이터 ({}): {}개", theme, sortType, dataList.size());
-
-            // 2단계: 지역 및 구/군 필터링
-            if (!"전국".equals(region)) {
-                showWards = true; // 특정 지역 선택 시 구/군 선택 UI 표시
-
-                if (!ward.isEmpty() && !ward.contains("전체")) {  // List 체크로 변경
-                    // 구/군까지 선택된 경우
-                    dataList = filterDataService.filterDatasByRegion(region, ward, dataList);
-                    String wardNames = String.join(", ", ward);  // 구/군 이름들 조합
-                    resultMessage = region + " " + wardNames + "의 " + theme + " " + dataList.size() + "개를 " + getSortDisplayName(sortType) + " 순으로 표시합니다.";
-                    log.info("지역 '{}', 구/군 '{}' 필터링 후 데이터: {}개", region, ward, dataList.size());
-                } else {
-                    // 지역만 선택된 경우 (구/군은 전체)
-                    dataList = filterDataService.filterDatasByRegion(region, List.of(), dataList);  // 빈 List 전달
-                    resultMessage = region + " 전체의 " + theme + " " + dataList.size() + "개를 " + getSortDisplayName(sortType) + " 순으로 표시합니다.";
-                    log.info("지역 '{}' 전체 필터링 후 데이터: {}개", region, dataList.size());
-                }
-            } else {
-                // 전국 선택
-                showWards = false;
-                resultMessage = "전국의 " + theme + " " + dataList.size() + "개를 " + getSortDisplayName(sortType) + " 순으로 표시합니다.";
-                log.info("전국 데이터 유지: {}개", dataList.size());
-            }
-
-            // 3단계: DTO 변환 (통계 데이터 포함)
-            List<DataResponseDto> convertedData = filterDataService.convertToDataResponseDto(dataList);
-
+            
+            // ✅ 모든 경우를 하나의 Service 메서드로 통합 처리!
+            Page<DataEntity> pagedData = filterDataService.findDatasByConditionWithPaging(
+                    region, ward, theme, sortType, page, size);
+            
+            // DTO 변환
+            List<DataResponseDto> dataList = filterDataService.convertToDataResponseDto(pagedData.getContent());
+            
+            // 메시지 생성
+            String message = generateMessage(region, ward, theme, sortType, pagedData.getTotalElements());
+            
+            // ✅ 깔끔한 응답 생성
             FilterResponse response = FilterResponse.builder()
                     .selectedRegion(region)
-                    .selectedWard(String.join(", ", ward))  // List를 String으로 변환
+                    .selectedWard(String.join(", ", ward))
                     .selectedTheme(theme)
-                    .selectedSort(sort) // ✅ 추가
-                    .dataList(convertedData)
-                    .totalCount(convertedData.size())
-                    .message(resultMessage)
-                    .showWards(showWards)
+                    .selectedSort(sort)
+                    .dataList(dataList)
+                    .totalCount((int) pagedData.getTotalElements())
+                    .currentPage(pagedData.getNumber())
+                    .totalPages(pagedData.getTotalPages())
+                    .pageSize(pagedData.getSize())
+                    .hasNext(pagedData.hasNext())
+                    .hasPrevious(pagedData.hasPrevious())
+                    .message(message)
+                    .showWards(!"전국".equals(region))
                     .success(true)
                     .build();
 
-            log.info("필터링 완료 - {}의 {} {} {}개 ({})", region, ward.isEmpty() ? "전체" : String.join(", ", ward), theme, convertedData.size(), sortType);
+            log.info("필터링 완료 - 전체: {}개, 현재 페이지: {}개, 페이지: {}/{}", 
+                    pagedData.getTotalElements(), dataList.size(), page + 1, pagedData.getTotalPages());
+
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
             log.error("필터링 중 오류 발생", e);
-
-            FilterResponse errorResponse = FilterResponse.builder()
-                    .selectedRegion(region)
-                    .selectedWard(ward.isEmpty() ? "" : String.join(", ", ward))
-                    .selectedTheme(theme)
-                    .selectedSort(sort) // ✅ 추가
-                    .dataList(List.of())
-                    .totalCount(0)
-                    .message("데이터 조회 중 오류가 발생했습니다.")
-                    .showWards(false)
-                    .success(false)
-                    .build();
-
-            return ResponseEntity.ok(errorResponse);
+            return ResponseEntity.ok(createErrorResponse(region, ward, theme, sort, page, size));
         }
     }
+
+    
+    
 
     /**
      * ✅ Top5 데이터 조회 API (메인 페이지용)
@@ -333,6 +315,47 @@ public class RegionListRestController {
             return ResponseEntity.internalServerError().build();
         }
     }
+    /**
+     * 메시지 생성 헬퍼 메서드
+     */
+    private String generateMessage(String region, List<String> ward, String theme, SortType sortType, long totalElements) {
+        String sortDisplayName = getSortDisplayName(sortType);
+        
+        if ("전국".equals(region)) {
+            return String.format("전국의 %s %,d개를 %s 순으로 표시합니다.", 
+                                theme, totalElements, sortDisplayName);
+        } else if (ward.isEmpty() || ward.contains("전체")) {
+            return String.format("%s 전체의 %s %,d개를 %s 순으로 표시합니다.", 
+                                region, theme, totalElements, sortDisplayName);
+        } else {
+            String wardNames = String.join(", ", ward);
+            return String.format("%s %s의 %s %,d개를 %s 순으로 표시합니다.", 
+                                region, wardNames, theme, totalElements, sortDisplayName);
+        }
+    }
+
+    /**
+     * 에러 응답 생성 헬퍼 메서드
+     */
+    private FilterResponse createErrorResponse(String region, List<String> ward, String theme, String sort, int page, int size) {
+        return FilterResponse.builder()
+                .selectedRegion(region)
+                .selectedWard(String.join(", ", ward))
+                .selectedTheme(theme)
+                .selectedSort(sort)
+                .dataList(List.of())
+                .totalCount(0)
+                .currentPage(page)
+                .totalPages(0)
+                .pageSize(size)
+                .hasNext(false)
+                .hasPrevious(false)
+                .message("데이터 조회 중 오류가 발생했습니다.")
+                .showWards(false)
+                .success(false)
+                .build();
+    }
+    
 
     /**
      * 간단한 상태 확인
@@ -385,9 +408,17 @@ public class RegionListRestController {
         private String selectedRegion;
         private String selectedWard;
         private String selectedTheme;
-        private String selectedSort; // ✅ 추가
+        private String selectedSort;
         private List<DataResponseDto> dataList;
-        private Integer totalCount;
+        private Integer totalCount; // 전체 데이터 개수
+        
+        // 페이징 정보
+        private Integer currentPage; // 현재 페이지 (0부터 시작)
+        private Integer totalPages; // 전체 페이지 수
+        private Integer pageSize; // 페이지 크기
+        private Boolean hasNext; // 다음 페이지 존재 여부
+        private Boolean hasPrevious; // 이전 페이지 존재 여부
+        
         private String message;
         private Boolean showWards;
         private Boolean success;

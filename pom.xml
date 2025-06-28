@@ -11,7 +11,7 @@
 	</parent>
 	<groupId>com.koreplan</groupId>
 	<artifactId>KorePlan</artifactId>
-	<version>0.0.9</version>
+	<version>1.0.0</version>
 	<name>KorePlan</name>
 	<description>Demo project for Spring Boot</description>
 	<url />
