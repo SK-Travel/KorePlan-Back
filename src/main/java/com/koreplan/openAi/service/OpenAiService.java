@@ -3,7 +3,6 @@ package com.koreplan.openAi.service;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -14,6 +13,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -114,7 +114,7 @@ public class OpenAiService {
 //            		""".formatted(region, days, companion, preferences);
             
             String gptPrompt = String.format("""
-					여행 일정 JSON 배열만 생성, 코드블록(```json 등) 금지
+					여행 일정 플래너
 					조건: 지역=%s, 일수=%d, 동행=%s, 선호=%s  
 					요구:
 					- 각 장소에 정확한 주소 포함  
@@ -123,7 +123,7 @@ public class OpenAiService {
 					- 장소는 같은 구(ward) 내, 이동거리 짧게  
 					- 추천도 순 정렬
 					- 각 날의 마지막 일정에 무조건 동일한 호텔 한 곳을 방문지로 포함
-					-JSON 배열 외 다른 출력 금지 
+					-JSON 배열 외 다른 코드블록(```json 등) 출력 금지 
 					응답 예시: [{"day":1,"order":1,"region":"서울특별시","ward":"종로구","title":"경복궁","address":"서울특별시 종로구 세종대로 175","mapx":127.xxx,"mapy":37.xxx}, ...{ "day": 1, "order": 4, "region": "서울특별시", "ward": "중구", "title": "롯데호텔서울", "address": "서울특별시 중구 을지로 30 롯데호텔", "mapx": 127.xxx, "mapy": 37.xxx },]
 					""", region, days, companion, preferences);
 
@@ -285,7 +285,6 @@ public class OpenAiService {
 	    return R * c;
 	}
 	
-	
 	// GPT 응답에서 중복 주소 제거
 	private List<JsonNode> removeDuplicateAddresses(JsonNode gptArray) {
 	    Set<String> usedAddresses = new HashSet<>();
@@ -307,16 +306,16 @@ public class OpenAiService {
 	}
 	
 	
-	// 숙소 추출 함수 추가
-	private JsonNode extractHotel(JsonNode gptArray) {
-	    for (JsonNode place : gptArray) {
-	        String title = place.get("title").asText("").toLowerCase();
-	        if (title.contains("호텔") || title.contains("guest") || title.contains("숙소") || title.contains("모텔")) {
-	            return place;
-	        }
-	    }
-	    return null;
-	}
+//	// 숙소 추출 함수 추가
+//	private JsonNode extractHotel(JsonNode gptArray) {
+//	    for (JsonNode place : gptArray) {
+//	        String title = place.get("title").asText("").toLowerCase();
+//	        if (title.contains("호텔") || title.contains("guest") || title.contains("숙소") || title.contains("모텔")) {
+//	            return place;
+//	        }
+//	    }
+//	    return null;
+//	}
 	
 	
 	// 필터링 로직 - 주소 기반 매칭 적용
@@ -694,48 +693,38 @@ public class OpenAiService {
         	        }
         	    }
         	}
-
-        	// 7-4. 마지막 날 제외하고 각 날짜 마지막에 같은 숙소 추가
+        	// 7-4. 마지막 날 제외하고 각 날짜 마지막에 숙소 추가
         	int lastDay = Collections.max(maxOrderByDay.keySet());
 
         	for (int day : maxOrderByDay.keySet()) {
-        	    if (day == lastDay) continue; // 마지막 날 제외
+        	    if (day == lastDay) continue;
 
         	    int maxOrder = maxOrderByDay.get(day);
         	    String lastKey = day + "-" + maxOrder;
         	    JsonNode lastNode = finalMap.get(lastKey);
 
-        	    boolean lastIsHotel = false;
-        	    if (lastNode != null && commonHotel != null) {
-        	        if (lastNode.has("title") && commonHotel.has("title")
-        	            && lastNode.get("title").asText().equals(commonHotel.get("title").asText())
-        	            && lastNode.has("address") && commonHotel.has("address")
-        	            && lastNode.get("address").asText().equals(commonHotel.get("address").asText())
-        	            && lastNode.get("day").asInt() == day) {
-        	            lastIsHotel = true;
-        	        }
+        	    // 이미 숙소인지 확인 (addr1 기준)
+        	    boolean alreadyLastIsHotel = false;
+        	    if (lastNode != null) {
+        	        String title = lastNode.has("title") ? lastNode.get("title").asText() : "";
+        	        String addr = lastNode.has("addr1") ? lastNode.get("addr1").asText() : "";
+
+        	        alreadyLastIsHotel =
+        	            (title.contains("호텔") || title.contains("숙소") || title.contains("리조트")) &&
+        	            addr.equals(commonHotel.has("addr1") ? commonHotel.get("addr1").asText() : "");
         	    }
 
-        	    if (!lastIsHotel && commonHotel != null) {
-        	        int nextOrder = maxOrder + 1;
-        	        String key = day + "-" + nextOrder;
+        	    if (!alreadyLastIsHotel) {
         	        ObjectNode newHotelNode = ((ObjectNode) commonHotel).deepCopy();
         	        newHotelNode.put("day", day);
-        	        newHotelNode.put("order", nextOrder);
-        	        finalMap.put(key, newHotelNode);
-        	        System.out.println("🛏️ 숙소 추가됨: day " + day + ", order " + nextOrder);
+        	        newHotelNode.put("order", maxOrder + 1);
+        	        finalMap.put(day + "-" + (maxOrder + 1), newHotelNode);
+        	        System.out.println("🛏️ 숙소 추가됨: day " + day + ", order " + (maxOrder + 1));
         	    } else {
-        	        System.out.println("✅ 이미 마지막 일정이 숙소거나 숙소 없음: day " + day);
+        	        System.out.println("✅ 이미 마지막이 숙소: day " + day);
         	    }
-                System.out.println("hotelMap:");
-                hotelMap.forEach((k,v) -> System.out.println(k + " -> " + v.get("title").asText()));
+        	}
 
-                System.out.println("maxOrderByDay:");
-                maxOrderByDay.forEach((k,v) -> System.out.println("Day " + k + ": maxOrder " + v));
-
-                System.out.println("finalMap keys:");
-                finalMap.keySet().forEach(System.out::println);
-            }
         }
 
         // 8. 마지막 날 첫 일정에 체크아웃 추가
@@ -774,16 +763,13 @@ public class OpenAiService {
             if (day1 != day2) return day1 - day2;
             return o1.get("order").asInt() - o2.get("order").asInt();
         });
-
         System.out.println("=== 최종 반환 장소 개수: " + finalList.size() + " ===");
         for (JsonNode place : finalList) {
             System.out.println("최종: " + place.get("day").asInt() + "-" + place.get("order").asInt()
                 + " -> " + place.get("title").asText());
         }
-
         return finalList;
     }
-
     
     @Transactional(readOnly = true)
     public List<JsonNode> findAllAccommodationsFromGptOrDb(JsonNode gptArray, Set<Long> usedIds) {
