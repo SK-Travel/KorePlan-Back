@@ -1,5 +1,6 @@
 package com.koreplan.area.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -23,5 +24,7 @@ public interface WardCodeRepository extends JpaRepository <WardCodeEntity,Long> 
     // AI 필터링용: name + region 으로 유일하게 조회
     @Query("SELECT w FROM WardCodeEntity w WHERE w.name = :name AND w.regionCodeEntity = :region")
     Optional<WardCodeEntity> findWardByNameAndRegionForAI(@Param("name") String name, @Param("region") RegionCodeEntity region);
+    
+    List<WardCodeEntity> findByNameStartingWithAndRegionCodeEntity(String namePrefix, RegionCodeEntity regionCodeEntity);
 
 }
