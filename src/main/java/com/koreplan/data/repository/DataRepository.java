@@ -44,6 +44,10 @@ public interface DataRepository extends JpaRepository<DataEntity,Long> {
     List<DataEntity> findByRegionCodeEntityAndWardCodeEntityAndThemeIn (@Param("region") RegionCodeEntity region,
         @Param("ward") WardCodeEntity ward,
         @Param("themeIds") List<Integer> themeIds);
+    @Query("SELECT d FROM DataEntity d " +  "WHERE d.addr1 = :addr1 " + "AND d.theme IN :themeIds")
+    List<DataEntity> findByAddr1AndThemeIn (@Param("addr1") String addr1,
+    		@Param("themeIds") List<Integer> themeIds);
+
 
     // 새로 추가할 메서드 (score 정렬 + 페이징)
     @Query("SELECT d FROM DataEntity d " + 
