@@ -88,7 +88,7 @@ public interface DataRepository extends JpaRepository<DataEntity,Long> {
     
     //프론트의 detail페이지에서 사용하기 편하도록 contentId로 찾을 수 있게 메서드 추가함.
     Optional<DataEntity> findByContentId(String contentId);
-    //이미지 서비스에서 사용하는 컨텐트아이디가 실재하는지 여부 확인하는 메서드(이미지를 가져올 때 유효한 z컨텐트아이디인가)
+    //이미지 서비스에서 사용하는 컨텐트아이디가 실재하는지 여부 확인하는 메서드(이미지를 가져올 때 유효한 컨텐트아이디인가)
 	boolean existsByContentId(String contentId);
 	//여러 컨텐츠아이디로 조회하는 기능
 	List<DataEntity> findByContentIdIn(List<String> contentIds);
@@ -108,7 +108,9 @@ public interface DataRepository extends JpaRepository<DataEntity,Long> {
 	List<DataEntity>findAllByOrderByRatingDesc();
 	List<DataEntity> findAllByOrderByReviewCountDesc();
 	
-	// ✅ 테마별 + 정렬 + JOIN FETCH 메서드들 추가 (LazyInitializationException 해결)
+	// ================= 기존 비페이징 메서드들 (다른 기능에서 사용 중이므로 유지) =================
+	
+	// ✅ 테마별 + 정렬 + JOIN FETCH 메서드들 (LazyInitializationException 해결)
 	@Query("SELECT d FROM DataEntity d " +
            "LEFT JOIN FETCH d.regionCodeEntity " +
            "LEFT JOIN FETCH d.wardCodeEntity " +
@@ -144,7 +146,7 @@ public interface DataRepository extends JpaRepository<DataEntity,Long> {
            "ORDER BY d.reviewCount DESC")
     List<DataEntity> findByThemeOrderByReviewCountDescWithRegion(@Param("theme") int theme);
     
-    // ✅ 전체 데이터 정렬 + JOIN FETCH 메서드들 추가
+    // ✅ 전체 데이터 정렬 + JOIN FETCH 메서드들
     @Query("SELECT d FROM DataEntity d " +
            "LEFT JOIN FETCH d.regionCodeEntity " +
            "LEFT JOIN FETCH d.wardCodeEntity " +
@@ -175,7 +177,7 @@ public interface DataRepository extends JpaRepository<DataEntity,Long> {
            "ORDER BY d.reviewCount DESC")
     List<DataEntity> findAllByOrderByReviewCountDescWithRegion();
     
- // Top5Place용 - 숙박(AC) 제외하고 상위 5개 조회
+    // Top5Place용 - 숙박(AC) 제외하고 상위 5개 조회
     @Query("SELECT d FROM DataEntity d " +
            "LEFT JOIN FETCH d.regionCodeEntity " +
            "LEFT JOIN FETCH d.wardCodeEntity " +
@@ -192,5 +194,164 @@ public interface DataRepository extends JpaRepository<DataEntity,Long> {
            "ORDER BY d.score DESC " +
            "LIMIT 5")
     List<DataEntity> findTop5ByC1CodeOrderByScoreDesc();
+
+    // ================= 페이징 지원 메서드들 (신규 추가) =================
     
+ // ✅ 1. 전국 + 테마 + 정렬 + 페이징 (테마는 반드시 포함!)
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "WHERE d.theme = :theme " +
+           "ORDER BY d.score DESC")
+    Page<DataEntity> findByThemeOrderByScoreDescWithRegionPaged(@Param("theme") int theme, Pageable pageable);
+
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "WHERE d.theme = :theme " +
+           "ORDER BY d.viewCount DESC")
+    Page<DataEntity> findByThemeOrderByViewCountDescWithRegionPaged(@Param("theme") int theme, Pageable pageable);
+
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "WHERE d.theme = :theme " +
+           "ORDER BY d.likeCount DESC")
+    Page<DataEntity> findByThemeOrderByLikeCountDescWithRegionPaged(@Param("theme") int theme, Pageable pageable);
+
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "WHERE d.theme = :theme " +
+           "ORDER BY d.rating DESC")
+    Page<DataEntity> findByThemeOrderByRatingDescWithRegionPaged(@Param("theme") int theme, Pageable pageable);
+
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "WHERE d.theme = :theme " +
+           "ORDER BY d.reviewCount DESC")
+    Page<DataEntity> findByThemeOrderByReviewCountDescWithRegionPaged(@Param("theme") int theme, Pageable pageable);
+
+    // ✅ 2. 특정 지역 + 테마 + 정렬 + 페이징
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "WHERE d.theme = :theme " +
+           "AND d.regionCodeEntity.regioncode = :regionCode " +
+           "ORDER BY d.score DESC")
+    Page<DataEntity> findByThemeAndRegionOrderByScoreDescWithRegionPaged(
+        @Param("theme") int theme, 
+        @Param("regionCode") Long regionCode, 
+        Pageable pageable);
+        
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "WHERE d.theme = :theme " +
+           "AND d.regionCodeEntity.regioncode = :regionCode " +
+           "ORDER BY d.viewCount DESC")
+    Page<DataEntity> findByThemeAndRegionOrderByViewCountDescWithRegionPaged(
+        @Param("theme") int theme, 
+        @Param("regionCode") Long regionCode, 
+        Pageable pageable);
+        
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "WHERE d.theme = :theme " +
+           "AND d.regionCodeEntity.regioncode = :regionCode " +
+           "ORDER BY d.likeCount DESC")
+    Page<DataEntity> findByThemeAndRegionOrderByLikeCountDescWithRegionPaged(
+        @Param("theme") int theme, 
+        @Param("regionCode") Long regionCode, 
+        Pageable pageable);
+        
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "WHERE d.theme = :theme " +
+           "AND d.regionCodeEntity.regioncode = :regionCode " +
+           "ORDER BY d.rating DESC")
+    Page<DataEntity> findByThemeAndRegionOrderByRatingDescWithRegionPaged(
+        @Param("theme") int theme, 
+        @Param("regionCode") Long regionCode, 
+        Pageable pageable);
+        
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "WHERE d.theme = :theme " +
+           "AND d.regionCodeEntity.regioncode = :regionCode " +
+           "ORDER BY d.reviewCount DESC")
+    Page<DataEntity> findByThemeAndRegionOrderByReviewCountDescWithRegionPaged(
+        @Param("theme") int theme, 
+        @Param("regionCode") Long regionCode, 
+        Pageable pageable);
+
+    // ✅ 3. 특정 지역 + 구/군 + 테마 + 정렬 + 페이징
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "WHERE d.theme = :theme " +
+           "AND d.regionCodeEntity.regioncode = :regionCode " +
+           "AND d.wardCodeEntity.wardcode IN :wardCodes " +
+           "ORDER BY d.score DESC")
+    Page<DataEntity> findByThemeAndRegionAndWardsOrderByScoreDescWithRegionPaged(
+        @Param("theme") int theme, 
+        @Param("regionCode") Long regionCode, 
+        @Param("wardCodes") List<Long> wardCodes, 
+        Pageable pageable);
+        
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "WHERE d.theme = :theme " +
+           "AND d.regionCodeEntity.regioncode = :regionCode " +
+           "AND d.wardCodeEntity.wardcode IN :wardCodes " +
+           "ORDER BY d.viewCount DESC")
+    Page<DataEntity> findByThemeAndRegionAndWardsOrderByViewCountDescWithRegionPaged(
+        @Param("theme") int theme, 
+        @Param("regionCode") Long regionCode, 
+        @Param("wardCodes") List<Long> wardCodes, 
+        Pageable pageable);
+        
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "WHERE d.theme = :theme " +
+           "AND d.regionCodeEntity.regioncode = :regionCode " +
+           "AND d.wardCodeEntity.wardcode IN :wardCodes " +
+           "ORDER BY d.likeCount DESC")
+    Page<DataEntity> findByThemeAndRegionAndWardsOrderByLikeCountDescWithRegionPaged(
+        @Param("theme") int theme, 
+        @Param("regionCode") Long regionCode, 
+        @Param("wardCodes") List<Long> wardCodes, 
+        Pageable pageable);
+        
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "WHERE d.theme = :theme " +
+           "AND d.regionCodeEntity.regioncode = :regionCode " +
+           "AND d.wardCodeEntity.wardcode IN :wardCodes " +
+           "ORDER BY d.rating DESC")
+    Page<DataEntity> findByThemeAndRegionAndWardsOrderByRatingDescWithRegionPaged(
+        @Param("theme") int theme, 
+        @Param("regionCode") Long regionCode, 
+        @Param("wardCodes") List<Long> wardCodes, 
+        Pageable pageable);
+        
+    @Query("SELECT d FROM DataEntity d " +
+           "LEFT JOIN FETCH d.regionCodeEntity " +
+           "LEFT JOIN FETCH d.wardCodeEntity " +
+           "WHERE d.theme = :theme " +
+           "AND d.regionCodeEntity.regioncode = :regionCode " +
+           "AND d.wardCodeEntity.wardcode IN :wardCodes " +
+           "ORDER BY d.reviewCount DESC")
+    Page<DataEntity> findByThemeAndRegionAndWardsOrderByReviewCountDescWithRegionPaged(
+        @Param("theme") int theme, 
+        @Param("regionCode") Long regionCode, 
+        @Param("wardCodes") List<Long> wardCodes, 
+        Pageable pageable);
 }

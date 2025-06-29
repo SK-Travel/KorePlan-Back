@@ -1,5 +1,6 @@
 package com.koreplan.controller.search;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.koreplan.data.service.SearchDataService;
+import com.koreplan.dto.festival.FestivalResponseDto;
 import com.koreplan.dto.search.DataResponseDto;
 import com.koreplan.service.search.FilterDataService.SortType;
 import com.koreplan.service.search.MapSearchService;
@@ -27,42 +29,69 @@ public class SearchDataController {
 	@Autowired
 	private SearchDataService searchDataService;
 	@GetMapping("/nearby")
-	public ResponseEntity<Map<String, Object>> getNearbyPlacesByTheme(@RequestParam("lat") double latitude,
-			@RequestParam("lng") double longitude, @RequestParam("theme") int theme,
-			@RequestParam(value = "radius", defaultValue = "5000") int radius, // 반경 5km (미터)
-			@RequestParam(value = "page", defaultValue = "0") int page,
-			@RequestParam(value = "size", defaultValue = "10") int size) {
-
-		Map<String, Object> response = new HashMap<>();
-
-		try {
-			// Pageable 객체 생성
-			Pageable pageable = PageRequest.of(page, size);
-
-			Page<DataResponseDto> nearbyPlacesPage = mapSearchService.getNearbyPlacesByTheme(latitude, longitude, theme,
-					radius, pageable);
-
-			response.put("code", 200);
-			response.put("message", "주변 장소 조회 성공");
-			response.put("result", nearbyPlacesPage.getContent());
-
-			// 페이징 정보
-			response.put("pagination",
-					Map.of("currentPage", page, "totalPages", nearbyPlacesPage.getTotalPages(), "totalElements",
-							nearbyPlacesPage.getTotalElements(), "size", size, "hasNext", nearbyPlacesPage.hasNext(),
-							"hasPrevious", nearbyPlacesPage.hasPrevious(), "isFirst", nearbyPlacesPage.isFirst(),
-							"isLast", nearbyPlacesPage.isLast()));
-
-			// 검색 조건 정보
-			response.put("searchInfo", Map.of("lat", latitude, "lng", longitude, "theme", theme, "radius", radius));
-
-			return ResponseEntity.ok(response);
-
-		} catch (Exception e) {
-			response.put("code", 500);
-			response.put("message", "주변 장소 조회 실패: " + e.getMessage());
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-		}
+	public ResponseEntity<?> getNearbyPlacesByTheme(
+	        @RequestParam double lat,
+	        @RequestParam double lng,
+	        @RequestParam int theme,
+	        @RequestParam(defaultValue = "5000") int radius,
+	        @RequestParam(defaultValue = "0") int page,
+	        @RequestParam(defaultValue = "10") int size) {
+	    
+	    try {
+	        Pageable pageable = PageRequest.of(page, size);
+	        
+	        if (theme == 15) {
+	            // 축제 검색
+	            Page<FestivalResponseDto> festivals = mapSearchService.getNearbyFestivalsByTheme(
+	                    lat, lng, radius, pageable);
+	            
+	            // 축제 응답 구조
+	            Map<String, Object> response = new HashMap<>();
+	            response.put("code", 200);
+	            response.put("message", "축제 검색 성공");
+	            response.put("result", festivals.getContent());
+	            response.put("pagination", Map.of(
+	                    "currentPage", festivals.getNumber(),
+	                    "totalPages", festivals.getTotalPages(),
+	                    "totalElements", festivals.getTotalElements(),
+	                    "pageSize", festivals.getSize(),
+	                    "hasNext", festivals.hasNext(),
+	                    "hasPrevious", festivals.hasPrevious()
+	            ));
+	            
+	            return ResponseEntity.ok(response);
+	            
+	        } else {
+	            // 일반 장소 검색
+	            Page<DataResponseDto> places = mapSearchService.getNearbyPlacesByTheme(
+	                    lat, lng, theme, radius, pageable);
+	            
+	            // 일반 장소 응답 구조
+	            Map<String, Object> response = new HashMap<>();
+	            response.put("code", 200);
+	            response.put("message", "장소 검색 성공");
+	            response.put("result", places.getContent());
+	            response.put("pagination", Map.of(
+	                    "currentPage", places.getNumber(),
+	                    "totalPages", places.getTotalPages(),
+	                    "totalElements", places.getTotalElements(),
+	                    "pageSize", places.getSize(),
+	                    "hasNext", places.hasNext(),
+	                    "hasPrevious", places.hasPrevious()
+	            ));
+	            
+	            return ResponseEntity.ok(response);
+	        }
+	        
+	    } catch (Exception e) {
+	        Map<String, Object> errorResponse = new HashMap<>();
+	        errorResponse.put("code", 500);
+	        errorResponse.put("message", "검색 실패: " + e.getMessage());
+	        errorResponse.put("result", new ArrayList<>());
+	        
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+	                .body(errorResponse);
+	    }
 	}
 
 	@GetMapping("/keyword")
